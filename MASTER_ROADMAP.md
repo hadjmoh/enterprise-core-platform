@@ -139,7 +139,7 @@ This document provides a comprehensive session-by-session breakdown of the devel
 *   **Session 5: Dashboard Persistence & Layout Engine** (DONE)
 *   **Session 6: Real-time Alerting HUD** (DONE)
 *   **Session 7: Phase 5 Hardening & UX Optimization** (DONE)
-*   **Session 8: Reporting & Export Engine (PDF/CSV)**
+*   **Session 8: Reporting & Export Engine (PDF/CSV)** (DONE)
 *   **Session 9: Interactive Drill-downs & Actions**
 *   **Session 10: Conditional Formatting & Thresholds**
 
