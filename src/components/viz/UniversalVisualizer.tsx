@@ -140,7 +140,11 @@ export const UniversalVisualizer: React.FC<UniversalVisualizerProps> = ({ progre
                                 </thead>
                                 <tbody className="divide-y divide-slate-800 text-slate-400">
                                     {results.slice(0, 10).map((row: Record<string, unknown>, i: number) => (
-                                        <tr key={i} className="hover:bg-slate-800/40 transition-colors">
+                                        <tr
+                                            key={i}
+                                            className="hover:bg-slate-800/40 transition-colors cursor-pointer"
+                                            onClick={(e) => onDrillDown?.(row, e.clientX, e.clientY)}
+                                        >
                                             {Object.values(row).map((val: unknown, j: number) => (
                                                 <td key={j} className="px-4 py-2 font-mono text-xs">{String(val)}</td>
                                             ))}

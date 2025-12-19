@@ -1,10 +1,10 @@
-import { Filter, XCircle, Search, Globe } from 'lucide-react';
+import { Filter, XCircle, Globe, Bell, Maximize2, Layers } from 'lucide-react';
 
 interface DrillDownMenuProps {
     x: number;
     y: number;
     filters: Record<string, unknown>;
-    onAction: (mode: 'include' | 'exclude' | 'pivot' | 'global') => void;
+    onAction: (mode: 'include' | 'exclude' | 'pivot' | 'global' | 'alert' | 'timezoom') => void;
     onClose: () => void;
 }
 
@@ -14,14 +14,11 @@ export const DrillDownMenu: React.FC<DrillDownMenuProps> = ({ x, y, filters, onA
         position: 'fixed',
         left: Math.min(x, window.innerWidth - 240),
         top: Math.min(y, window.innerHeight - 300),
-        zIndex: 50,
+        zIndex: 100,
     };
 
-    const firstField = Object.keys(filters)[0];
-    const firstValue = filters[firstField];
-
-    const includeSpl = `| search ${firstField}="${firstValue}"`;
-    const excludeSpl = `| search ${firstField}!="${firstValue}"`;
+    const filterEntries = Object.entries(filters).filter(([k]) => !k.startsWith('_'));
+    const isTimeDrill = '_time' in filters;
 
     return (
         <>
@@ -31,45 +28,74 @@ export const DrillDownMenu: React.FC<DrillDownMenuProps> = ({ x, y, filters, onA
             />
             <div
                 style={style}
-                className="w-60 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1 animate-in zoom-in-95 duration-150"
+                className="w-64 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1 animate-in zoom-in-95 duration-150 backdrop-blur-xl"
             >
                 <div className="px-3 py-2 border-b border-slate-800/50">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Context Action</p>
-                    <p className="text-xs text-slate-200 mt-1 truncate">
-                        {firstField}: <span className="text-brand-400">"{String(firstValue)}"</span>
-                    </p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tactical Actions</p>
+                    <div className="mt-1.5 space-y-1">
+                        {filterEntries.map(([k, v]) => (
+                            <p key={k} className="text-xs text-slate-200 truncate">
+                                {k}: <span className="text-brand-400 font-mono">"{String(v)}"</span>
+                            </p>
+                        ))}
+                        {isTimeDrill && (
+                            <p className="text-[10px] text-slate-500 font-mono">
+                                Time: {new Date(filters._time as string).toLocaleTimeString()}
+                            </p>
+                        )}
+                    </div>
                 </div>
 
                 <div className="p-1 space-y-0.5 mt-1">
-                    <div className="group relative">
-                        <button
-                            onClick={() => onAction('include')}
-                            className="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <Filter className="h-3.5 w-3.5 text-brand-400" />
-                                <span>Include Filter</span>
-                            </div>
-                        </button>
-                        <div className="hidden group-hover:block absolute left-full ml-2 top-0 w-48 p-2 bg-slate-800 rounded-lg text-[10px] text-slate-400 font-mono border border-slate-700 shadow-xl z-50">
-                            {includeSpl}
+                    <button
+                        onClick={() => onAction('include')}
+                        className="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <Filter className="h-3.5 w-3.5 text-brand-400" />
+                            <span>Include Filter</span>
                         </div>
-                    </div>
+                        <span className="text-[9px] text-slate-600 font-bold group-hover:text-slate-400">+</span>
+                    </button>
 
-                    <div className="group relative">
-                        <button
-                            onClick={() => onAction('exclude')}
-                            className="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <XCircle className="h-3.5 w-3.5 text-red-400" />
-                                <span>Exclude Filter</span>
-                            </div>
-                        </button>
-                        <div className="hidden group-hover:block absolute left-full ml-2 top-0 w-48 p-2 bg-slate-800 rounded-lg text-[10px] text-slate-400 font-mono border border-slate-700 shadow-xl z-50">
-                            {excludeSpl}
+                    <button
+                        onClick={() => onAction('exclude')}
+                        className="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <XCircle className="h-3.5 w-3.5 text-red-400" />
+                            <span>Exclude Filter</span>
                         </div>
-                    </div>
+                        <span className="text-[9px] text-slate-600 font-bold group-hover:text-slate-400">-</span>
+                    </button>
+
+                    {isTimeDrill && (
+                        <button
+                            onClick={() => onAction('timezoom')}
+                            className="w-full flex items-center gap-3 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
+                        >
+                            <Maximize2 className="h-3.5 w-3.5 text-amber-400" />
+                            <span>Zoom into Time Range</span>
+                        </button>
+                    )}
+
+                    <div className="h-[1px] bg-slate-800/50 my-1 mx-2" />
+
+                    <button
+                        onClick={() => onAction('pivot')}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
+                    >
+                        <Layers className="h-3.5 w-3.5 text-indigo-400" />
+                        <span>Pivot by Context</span>
+                    </button>
+
+                    <button
+                        onClick={() => onAction('alert')}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
+                    >
+                        <Bell className="h-3.5 w-3.5 text-rose-400" />
+                        <span>Create Alert for this</span>
+                    </button>
 
                     <button
                         onClick={() => onAction('global')}
@@ -77,14 +103,6 @@ export const DrillDownMenu: React.FC<DrillDownMenuProps> = ({ x, y, filters, onA
                     >
                         <Globe className="h-3.5 w-3.5 text-brand-400" />
                         Apply to Dashboard
-                    </button>
-
-                    <button
-                        onClick={() => onAction('pivot')}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors"
-                    >
-                        <Search className="h-3.5 w-3.5 text-indigo-400" />
-                        Pivot to Raw Logs
                     </button>
                 </div>
             </div>

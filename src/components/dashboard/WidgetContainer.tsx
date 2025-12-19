@@ -34,7 +34,7 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
         setActiveDrillDown({ x, y, filters });
     };
 
-    const executeDrillDown = (mode: 'include' | 'exclude' | 'pivot' | 'global') => {
+    const executeDrillDown = (mode: 'include' | 'exclude' | 'pivot' | 'global' | 'alert' | 'timezoom') => {
         if (!activeDrillDown) return;
 
         const { filters } = activeDrillDown;
@@ -42,21 +42,30 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
 
         if (mode === 'include') {
             refinements = Object.entries(filters)
+                .filter(([k]) => !k.startsWith('_'))
                 .map(([k, v]) => `| search ${k}="${v}"`)
                 .join(' ');
             setHistory(prev => [...prev, `${currentSpl} ${refinements}`]);
         } else if (mode === 'exclude') {
             refinements = Object.entries(filters)
+                .filter(([k]) => !k.startsWith('_'))
                 .map(([k, v]) => `| search ${k}!="${v}"`)
                 .join(' ');
             setHistory(prev => [...prev, `${currentSpl} ${refinements}`]);
         } else if (mode === 'pivot') {
-            const rawFilter = Object.entries(filters)
-                .map(([k, v]) => `${k}="${v}"`)
-                .join(' ');
-            setHistory([`index=* ${rawFilter}`]);
+            // Pivot by the first categorical key found
+            const pivotKey = Object.keys(filters).find(k => !k.startsWith('_')) || 'host';
+            setHistory(prev => [...prev, `${currentSpl} | stats count by ${pivotKey}`]);
+        } else if (mode === 'timezoom' && filters._time) {
+            const timestamp = new Date(filters._time as string).getTime();
+            const start = new Date(timestamp - 300000).toISOString(); // -5m
+            const end = new Date(timestamp + 300000).toISOString();   // +5m
+            setHistory(prev => [...prev, `${currentSpl} | where _time > "${start}" AND _time < "${end}"`]);
+        } else if (mode === 'alert') {
+            alert('Opening Alert Creation Modal with filters: ' + JSON.stringify(filters));
         } else if (mode === 'global' && onGlobalSearch) {
             const refinement = Object.entries(filters)
+                .filter(([k]) => !k.startsWith('_'))
                 .map(([k, v]) => `| search ${k}="${v}"`)
                 .join(' ');
             onGlobalSearch(`${currentSpl} ${refinement}`);
