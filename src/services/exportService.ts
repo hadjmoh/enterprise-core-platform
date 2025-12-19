@@ -16,6 +16,8 @@ export interface ReportRecord {
     size: string;
     status: 'Ready' | 'Expired';
     query?: string;
+    user?: string;
+    timeRange?: string;
 }
 
 export const getReportHistory = (): ReportRecord[] => {
@@ -37,7 +39,18 @@ export const deleteReport = (id: string) => {
     localStorage.setItem(REPORT_HISTORY_KEY, JSON.stringify(history.filter(r => r.id !== id)));
 };
 
-const addReportToHistory = (name: string, type: ReportRecord['type'], sizeInBytes: number, query?: string) => {
+interface ExportMetadata {
+    query?: string;
+    user?: string;
+    timeRange?: string;
+}
+
+const addReportToHistory = (
+    name: string,
+    type: ReportRecord['type'],
+    sizeInBytes: number,
+    meta?: ExportMetadata
+) => {
     const history = getReportHistory();
 
     const sizeStr = sizeInBytes > 1024 * 1024
@@ -51,13 +64,15 @@ const addReportToHistory = (name: string, type: ReportRecord['type'], sizeInByte
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
         size: sizeStr,
         status: 'Ready',
-        query
+        query: meta?.query,
+        user: meta?.user || 'admin',
+        timeRange: meta?.timeRange || 'All Time'
     };
 
     localStorage.setItem(REPORT_HISTORY_KEY, JSON.stringify([newReport, ...history].slice(0, 50)));
 };
 
-export const exportToCSV = (data: Record<string, unknown>[], filename: string, query?: string) => {
+export const exportToCSV = (data: Record<string, unknown>[], filename: string, meta?: ExportMetadata) => {
     if (!data || data.length === 0) return;
 
     const headers = Object.keys(data[0]);
@@ -72,7 +87,7 @@ export const exportToCSV = (data: Record<string, unknown>[], filename: string, q
     const csvContent = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
 
-    addReportToHistory(filename, 'CSV', blob.size, query);
+    addReportToHistory(filename, 'CSV', blob.size, meta);
 
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -84,13 +99,13 @@ export const exportToCSV = (data: Record<string, unknown>[], filename: string, q
     document.body.removeChild(link);
 };
 
-export const exportToJSON = (data: Record<string, unknown>[], filename: string, query?: string) => {
+export const exportToJSON = (data: Record<string, unknown>[], filename: string, meta?: ExportMetadata) => {
     if (!data || data.length === 0) return;
 
     const jsonContent = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
 
-    addReportToHistory(filename, 'JSON', blob.size, query);
+    addReportToHistory(filename, 'JSON', blob.size, meta);
 
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -105,7 +120,7 @@ export const exportToJSON = (data: Record<string, unknown>[], filename: string, 
 /**
  * Generates a professional PDF snapshot of a DOM element with watermarking
  */
-export const exportToPDF = async (elementId: string, title: string, query?: string) => {
+export const exportToPDF = async (elementId: string, title: string, meta?: ExportMetadata) => {
     const element = document.getElementById(elementId);
     if (!element) return;
 
@@ -146,7 +161,7 @@ export const exportToPDF = async (elementId: string, title: string, query?: stri
         pdf.text(`Report: ${title} | generated ${new Date().toLocaleString()}`, width - 20, 25, { align: 'right' });
 
         const pdfBlob = pdf.output('blob');
-        addReportToHistory(title, 'PDF', pdfBlob.size, query);
+        addReportToHistory(title, 'PDF', pdfBlob.size, meta);
         pdf.save(`${title.replace(/\s+/g, '_').toLowerCase()}.pdf`);
     } catch (error) {
         console.error('PDF Generation failed:', error);

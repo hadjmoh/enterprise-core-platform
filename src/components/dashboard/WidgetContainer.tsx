@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card } from '../ui/Card';
-import { X, GripVertical, RefreshCw, FileText, Database, Code, ChevronLeft, PlusCircle } from 'lucide-react';
+import { X, GripVertical, RefreshCw, FileText, Database, Code, ChevronLeft, PlusCircle, Image as ImageIcon } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { UniversalVisualizer } from '../viz/UniversalVisualizer';
 import { useSearch } from '../../hooks/useSearch';
@@ -176,7 +176,7 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 text-slate-500 hover:text-indigo-400"
-                                onClick={() => exportToCSV(search.results!, title, currentSpl)}
+                                onClick={() => exportToCSV(search.results!, title, { query: currentSpl })}
                                 title="Export CSV"
                             >
                                 <Database className="h-3 w-3" />
@@ -185,7 +185,7 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 text-slate-500 hover:text-amber-400"
-                                onClick={() => exportToPDF(`widget-content-${id}`, title, currentSpl)}
+                                onClick={() => exportToPDF(`widget-content-${id}`, title, { query: currentSpl })}
                                 title="Export PDF"
                             >
                                 <FileText className="h-3 w-3" />
@@ -194,10 +194,28 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 text-slate-500 hover:text-emerald-400"
-                                onClick={() => exportToJSON(search.results!, title, currentSpl)}
+                                onClick={() => exportToJSON(search.results!, title, { query: currentSpl })}
                                 title="Export JSON"
                             >
                                 <Code className="h-3 w-3" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-slate-500 hover:text-pink-400"
+                                onClick={async () => {
+                                    const el = document.getElementById(`widget-content-${id}`);
+                                    if (el) {
+                                        const canvas = await (await import('html2canvas')).default(el, { backgroundColor: '#0f172a' });
+                                        const link = document.createElement('a');
+                                        link.download = `${title.toLowerCase().replace(/\s+/g, '_')}_snapshot.png`;
+                                        link.href = canvas.toDataURL();
+                                        link.click();
+                                    }
+                                }}
+                                title="Download as Image"
+                            >
+                                <ImageIcon className="h-3 w-3" />
                             </Button>
                         </div>
                     )}
