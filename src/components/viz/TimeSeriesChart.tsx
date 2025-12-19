@@ -37,10 +37,13 @@ ChartJS.register(
     zoomPlugin
 );
 
+import type { Threshold } from '../../types/viz';
+
 interface TimeSeriesChartProps {
     data: Record<string, unknown>[];
     span?: number;
     onDrillDown?: (filters: Record<string, unknown>, x: number, y: number) => void;
+    thresholds?: Threshold[];
 }
 
 interface WorkerDataset {
@@ -49,7 +52,7 @@ interface WorkerDataset {
     [key: string]: unknown;
 }
 
-export const TimeSeriesChartImpl: React.FC<TimeSeriesChartProps> = ({ data, span, onDrillDown }) => {
+export const TimeSeriesChartImpl: React.FC<TimeSeriesChartProps> = ({ data, span, onDrillDown, thresholds }) => {
     const { timezone } = useUI();
     const isHighDensity = data.length > 500;
     const [workerDatasets, setWorkerDatasets] = React.useState<WorkerDataset[]>([]);
@@ -82,20 +85,37 @@ export const TimeSeriesChartImpl: React.FC<TimeSeriesChartProps> = ({ data, span
     }, [data, span, onDrillDown, timezone]);
 
     const chartData = useMemo(() => {
-        return {
-            datasets: workerDatasets.map((ds, i) => ({
-                ...ds,
-                borderColor: i === 0 ? '#6366f1' : '#10b981', // indigo / emerald
-                backgroundColor: i === 0 ? 'rgba(99, 102, 241, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                tension: isHighDensity ? 0 : 0.2,
-                pointRadius: isHighDensity ? 0 : 2,
-                borderWidth: isHighDensity ? 1 : 2,
-                fill: true,
-                spanGaps: true,
-                data: ds.data // Explicitly ensure data is present
-            })),
-        } as ChartJSData<'line'>;
-    }, [workerDatasets, isHighDensity]);
+        const datasets = workerDatasets.map((ds, i) => ({
+            ...ds,
+            borderColor: i === 0 ? '#6366f1' : '#10b981', // indigo / emerald
+            backgroundColor: i === 0 ? 'rgba(99, 102, 241, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+            tension: isHighDensity ? 0 : 0.2,
+            pointRadius: isHighDensity ? 0 : 2,
+            borderWidth: isHighDensity ? 1 : 2,
+            fill: true,
+            spanGaps: true,
+            data: ds.data as unknown as (number | null)[]
+        })) as unknown as unknown[];
+
+        // Add threshold baseline datasets
+        if (thresholds && thresholds.length > 0 && workerDatasets.length > 0) {
+            const timeRange = workerDatasets[0].data.map(d => d.x);
+            thresholds.forEach(t => {
+                datasets.push({
+                    label: t.label || 'Threshold',
+                    data: timeRange.map(x => ({ x, y: t.value })),
+                    borderColor: t.color,
+                    borderWidth: 1,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            });
+        }
+
+        return { datasets: datasets as ChartJSData<'line'>['datasets'] };
+    }, [workerDatasets, isHighDensity, thresholds]);
 
     const options: ChartOptions<'line'> = useMemo(() => ({
         responsive: true,

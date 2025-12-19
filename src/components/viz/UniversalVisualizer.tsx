@@ -68,7 +68,14 @@ export const UniversalVisualizer: React.FC<UniversalVisualizerProps> = ({ progre
                             <span className="text-xs text-slate-500">Span: {metadata._span}s</span>
                         </div>
                         <div className="h-64 bg-slate-800/20 rounded-lg border border-slate-800 p-4 shadow-inner">
-                            <TimeSeriesChart data={results} span={metadata._span} onDrillDown={onDrillDown} />
+                            <TimeSeriesChart
+                                data={results}
+                                span={metadata._span}
+                                onDrillDown={onDrillDown}
+                                thresholds={[
+                                    { value: 80, color: 'rgba(239, 68, 68, 0.5)', label: 'SLA BREACH' }
+                                ]}
+                            />
                         </div>
                     </div>
                 );
@@ -93,6 +100,11 @@ export const UniversalVisualizer: React.FC<UniversalVisualizerProps> = ({ progre
                             <SingleValuePanel
                                 value={row[numericKeys[0]] as number}
                                 label={numericKeys[0]}
+                                thresholds={[
+                                    { value: 0, color: '#10b981', label: 'Healthy', severity: 'success' },
+                                    { value: 50, color: '#fbbf24', label: 'Warning', severity: 'warning' },
+                                    { value: 100, color: '#ef4444', label: 'Critical', severity: 'critical' }
+                                ]}
                             />
                         </div>
                     );
@@ -145,9 +157,32 @@ export const UniversalVisualizer: React.FC<UniversalVisualizerProps> = ({ progre
                                             className="hover:bg-slate-800/40 transition-colors cursor-pointer"
                                             onClick={(e) => onDrillDown?.(row, e.clientX, e.clientY)}
                                         >
-                                            {Object.values(row).map((val: unknown, j: number) => (
-                                                <td key={j} className="px-4 py-2 font-mono text-xs">{String(val)}</td>
-                                            ))}
+                                            {Object.entries(row).map(([key, val], j: number) => {
+                                                const sVal = String(val);
+                                                const cellStyle = "px-4 py-2 font-mono text-xs";
+                                                let pillStyle = "";
+
+                                                // Automatic Semantic Intelligence
+                                                if (key === 'status') {
+                                                    const code = parseInt(sVal);
+                                                    if (code >= 500) pillStyle = "bg-red-500/10 text-red-500 border border-red-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
+                                                    else if (code >= 400) pillStyle = "bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
+                                                    else if (code >= 200) pillStyle = "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
+                                                } else if (key === 'latency' || key === 'duration') {
+                                                    const lat = parseFloat(sVal);
+                                                    if (lat > 1000) pillStyle = "text-red-400 font-bold";
+                                                    else if (lat > 500) pillStyle = "text-amber-400 font-bold";
+                                                } else if (key.toLowerCase().includes('level')) {
+                                                    if (sVal === 'ERROR') pillStyle = "text-red-500 font-black";
+                                                    if (sVal === 'WARN') pillStyle = "text-amber-500 font-bold";
+                                                }
+
+                                                return (
+                                                    <td key={j} className={cellStyle}>
+                                                        <span className={pillStyle}>{sVal}</span>
+                                                    </td>
+                                                );
+                                            })}
                                         </tr>
                                     ))}
                                 </tbody>
