@@ -157,7 +157,7 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 text-slate-500 hover:text-indigo-400"
-                                onClick={() => exportToCSV(search.results!, title)}
+                                onClick={() => exportToCSV(search.results!, title, currentSpl)}
                                 title="Export CSV"
                             >
                                 <Database className="h-3 w-3" />
@@ -166,7 +166,7 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 text-slate-500 hover:text-amber-400"
-                                onClick={() => exportToPDF(`widget-content-${id}`, title)}
+                                onClick={() => exportToPDF(`widget-content-${id}`, title, currentSpl)}
                                 title="Export PDF"
                             >
                                 <FileText className="h-3 w-3" />
@@ -175,7 +175,7 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 w-6 p-0 text-slate-500 hover:text-emerald-400"
-                                onClick={() => exportToJSON(search.results!, title)}
+                                onClick={() => exportToJSON(search.results!, title, currentSpl)}
                                 title="Export JSON"
                             >
                                 <Code className="h-3 w-3" />

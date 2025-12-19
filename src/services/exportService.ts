@@ -1,6 +1,9 @@
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
 /**
  * Export Service
- * Handles data conversion and browser-driven downloads for CSV and PDF formats.
+ * Handles data conversion and professional PDF/CSV generation.
  */
 
 const REPORT_HISTORY_KEY = 'enterprise_core_report_history';
@@ -12,11 +15,30 @@ export interface ReportRecord {
     timestamp: string;
     size: string;
     status: 'Ready' | 'Expired';
+    query?: string;
 }
 
-const addReportToHistory = (name: string, type: ReportRecord['type'], sizeInBytes: number) => {
-    const saved = localStorage.getItem(REPORT_HISTORY_KEY);
-    const history: ReportRecord[] = saved ? JSON.parse(saved) : [];
+export const getReportHistory = (): ReportRecord[] => {
+    try {
+        const saved = localStorage.getItem(REPORT_HISTORY_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+        console.error('Failed to load report history', e);
+        return [];
+    }
+};
+
+export const clearReportHistory = () => {
+    localStorage.removeItem(REPORT_HISTORY_KEY);
+};
+
+export const deleteReport = (id: string) => {
+    const history = getReportHistory();
+    localStorage.setItem(REPORT_HISTORY_KEY, JSON.stringify(history.filter(r => r.id !== id)));
+};
+
+const addReportToHistory = (name: string, type: ReportRecord['type'], sizeInBytes: number, query?: string) => {
+    const history = getReportHistory();
 
     const sizeStr = sizeInBytes > 1024 * 1024
         ? `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`
@@ -28,138 +50,105 @@ const addReportToHistory = (name: string, type: ReportRecord['type'], sizeInByte
         type,
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
         size: sizeStr,
-        status: 'Ready'
+        status: 'Ready',
+        query
     };
 
     localStorage.setItem(REPORT_HISTORY_KEY, JSON.stringify([newReport, ...history].slice(0, 50)));
 };
 
-export const exportToCSV = (data: Record<string, unknown>[], filename: string) => {
+export const exportToCSV = (data: Record<string, unknown>[], filename: string, query?: string) => {
     if (!data || data.length === 0) return;
 
-    // 1. Extract headers
     const headers = Object.keys(data[0]);
-
-    // 2. Map data to rows
     const rows = data.map(row =>
         headers.map(header => {
             const val = row[header];
-            // Escape quotes and wrap in quotes if contains comma
             const escaped = String(val).replace(/"/g, '""');
             return `"${escaped}"`;
         }).join(',')
     );
 
-    // 3. Combine headers and rows
     const csvContent = [headers.join(','), ...rows].join('\n');
-
-    // 4. Create Blob and trigger download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
 
-    addReportToHistory(filename, 'CSV', blob.size);
+    addReportToHistory(filename, 'CSV', blob.size, query);
 
     const link = document.createElement('a');
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `${filename}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };
 
-export const exportToJSON = (data: Record<string, unknown>[], filename: string) => {
+export const exportToJSON = (data: Record<string, unknown>[], filename: string, query?: string) => {
     if (!data || data.length === 0) return;
 
     const jsonContent = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
 
-    addReportToHistory(filename, 'JSON', blob.size);
+    addReportToHistory(filename, 'JSON', blob.size, query);
 
     const link = document.createElement('a');
-    if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `${filename}.json`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.json`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 };
 
 /**
- * Triggers a focused print operation for a specific element
- * This is a lightweight alternative to jspdf/html2canvas
+ * Generates a professional PDF snapshot of a DOM element with watermarking
  */
-export const exportToPDF = (elementId: string, title: string) => {
+export const exportToPDF = async (elementId: string, title: string, query?: string) => {
     const element = document.getElementById(elementId);
     if (!element) return;
 
-    // Estimate file size (very rough)
-    addReportToHistory(title, 'PDF', element.innerHTML.length * 2);
+    try {
+        const canvas = await html2canvas(element, {
+            scale: 2,
+            backgroundColor: '#0f172a',
+            logging: false,
+            useCORS: true
+        });
 
-    // We use a temporary print stylesheet strategy
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+        });
 
-    const styles = Array.from(document.styleSheets)
-        .map(styleSheet => {
-            try {
-                return Array.from(styleSheet.cssRules)
-                    .map(rule => rule.cssText)
-                    .join('');
-            } catch {
-                return '';
-            }
-        })
-        .join('');
+        const width = pdf.internal.pageSize.getWidth();
+        const height = pdf.internal.pageSize.getHeight();
 
-    const now = new Date().toLocaleString();
+        // Background Watermark (diagonal)
+        pdf.setTextColor(255, 255, 255, 0.05);
+        pdf.setFontSize(80);
+        pdf.text('CONFIDENTIAL', 50, height - 100, { angle: 45 });
+        pdf.text('CONFIDENTIAL', width / 2, height / 2, { angle: 45 });
 
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>${title}</title>
-                <style>
-                    ${styles}
-                    @media print {
-                        body { background: white !important; color: black !important; padding: 0 !important; }
-                        .no-print { display: none !important; }
-                        #print-target { width: 100% !important; height: auto !important; }
-                        .report-header { border-bottom: 2px solid #1e293b; margin-bottom: 40px; padding-bottom: 20px; }
-                    }
-                    body { font-family: 'Inter', sans-serif; padding: 40px; background: #fff; }
-                    .report-header { display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #f1f5f9; margin-bottom: 30px; padding-bottom: 20px; }
-                    .logo { font-weight: 800; font-size: 24px; color: #6366f1; }
-                    .meta { text-align: right; color: #64748b; font-size: 12px; }
-                </style>
-            </head>
-            <body>
-                <div id="print-target">
-                    <div class="report-header">
-                        <div>
-                            <div class="logo">ENTERPRISE CORE</div>
-                            <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Intelligence Intelligence Layer</div>
-                        </div>
-                        <div class="meta">
-                            <div style="font-weight: bold; color: #1e293b;">${title}</div>
-                            <div>Generated: ${now}</div>
-                            <div>Classification: INTERNAL USE ONLY</div>
-                        </div>
-                    </div>
-                    ${element.innerHTML}
-                </div>
-                <script>
-                    window.onload = () => {
-                        window.print();
-                        setTimeout(() => window.close(), 500);
-                    };
-                </script>
-            </body>
-        </html>
-    `);
-    printWindow.document.close();
+        pdf.addImage(imgData, 'PNG', 0, 0, width, height);
+
+        // Add Header Branding
+        pdf.setFillColor(30, 41, 59); // slate-800
+        pdf.rect(0, 0, width, 40, 'F');
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFontSize(14);
+        pdf.text('ENTERPRISE CORE PLATFORM', 20, 25);
+        pdf.setFontSize(10);
+        pdf.setTextColor(148, 163, 184); // slate-400
+        pdf.text(`Report: ${title} | generated ${new Date().toLocaleString()}`, width - 20, 25, { align: 'right' });
+
+        const pdfBlob = pdf.output('blob');
+        addReportToHistory(title, 'PDF', pdfBlob.size, query);
+        pdf.save(`${title.replace(/\s+/g, '_').toLowerCase()}.pdf`);
+    } catch (error) {
+        console.error('PDF Generation failed:', error);
+    }
 };

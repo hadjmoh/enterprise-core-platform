@@ -3,58 +3,92 @@ import { Sidebar } from '../components/layout/Sidebar';
 import { Header } from '../components/layout/Header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { FileText, Download, Calendar, Filter, Search } from 'lucide-react';
+import { FileText, Download, Calendar, Search, Trash2, Clock, Info, X, ChevronRight, Settings } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
-
-const MOCK_REPORTS = [
-    { id: '1', name: 'Executive Summary - Q4 2023', type: 'PDF', date: '2023-12-01', size: '2.4 MB', status: 'Ready' },
-    { id: '2', name: 'System Performance Audit', type: 'CSV', date: '2023-11-28', size: '15.8 MB', status: 'Processing' },
-    { id: '3', name: 'User Activity Log - Weekly', type: 'JSON', date: '2023-12-05', size: '842 KB', status: 'Ready' },
-    { id: '4', name: 'Security Incident Report', type: 'PDF', date: '2023-12-04', size: '1.1 MB', status: 'Ready' },
-    { id: '5', name: 'Resource Utilization Forecast', type: 'CSV', date: '2023-11-30', size: '4.2 MB', status: 'Error' },
-];
+import { getReportHistory, type ReportRecord, exportToCSV, exportToJSON, clearReportHistory, deleteReport } from '../services/exportService';
 
 export function ReportingPage() {
-    const [reports] = useState(MOCK_REPORTS);
+    const [reports, setReports] = useState<ReportRecord[]>(() => getReportHistory());
     const [searchQuery, setSearchQuery] = useState('');
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [selectedReport, setSelectedReport] = useState<ReportRecord | null>(null);
+    const [isScheduling, setIsScheduling] = useState(false);
 
     const filteredReports = reports.filter(report =>
         report.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const refreshHistory = () => {
+        setReports(getReportHistory());
+    };
+
+    const handleClearAll = () => {
+        if (confirm('Are you sure you want to clear all report history?')) {
+            clearReportHistory();
+            refreshHistory();
+        }
+    };
+
+    const handleDelete = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        deleteReport(id);
+        refreshHistory();
+        if (selectedReport?.id === id) setSelectedReport(null);
+    };
+
+    const handleSampleExport = () => {
+        const sampleData = [
+            { timestamp: new Date().toISOString(), event: 'Login', user: 'admin', status: 'success' },
+            { timestamp: new Date().toISOString(), event: 'Search', user: 'analyst_1', status: 'failure' },
+            { timestamp: new Date().toISOString(), event: 'Export', user: 'admin', status: 'success' },
+        ];
+        exportToCSV(sampleData, 'Sample_System_Audit', 'index=audit | stats count by user');
+        setTimeout(refreshHistory, 500);
+    };
+
+    const handleRedownload = (report: ReportRecord, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const dummy = [{ message: "Re-downloading archived report: " + report.name }];
+        if (report.type === 'CSV') exportToCSV(dummy, report.name, report.query);
+        else if (report.type === 'JSON') exportToJSON(dummy, report.name, report.query);
+        else alert('PDF Re-download would fetch from Enterprise Blob Storage.');
+    };
+
     return (
         <div className="flex h-screen bg-slate-950 text-slate-200 font-sans selection:bg-brand-500/30">
             <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} isMobile={false} />
-            <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                <Header openAlerts={() => { }} />
+            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                <Header openAlerts={() => { }} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 
                 <main className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
                     {/* Controls Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <h1 className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Reporting Engine</h1>
+                        <div>
+                            <h1 className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Reporting Engine</h1>
+                            <p className="text-xs text-slate-500 mt-1">Manage and track enterprise data exports</p>
+                        </div>
                         <div className="relative flex-1 max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                             <input
                                 type="text"
-                                placeholder="Search reports..."
-                                className="w-full bg-slate-900/50 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all"
+                                placeholder="Search report history..."
+                                className="w-full bg-slate-900/50 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all font-mono"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm">
-                                <Calendar className="h-4 w-4 mr-2" />
-                                Date Range
+                            <Button variant="ghost" size="sm" onClick={handleClearAll} className="text-slate-500 hover:text-red-400">
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Clear
                             </Button>
-                            <Button variant="outline" size="sm">
-                                <Filter className="h-4 w-4 mr-2" />
-                                Filter
+                            <Button variant="outline" size="sm" onClick={() => setIsScheduling(true)}>
+                                <Clock className="h-4 w-4 mr-2" />
+                                Schedule
                             </Button>
-                            <Button variant="primary" size="sm">
+                            <Button variant="primary" size="sm" onClick={handleSampleExport}>
                                 <FileText className="h-4 w-4 mr-2" />
-                                Generate Report
+                                Custom Export
                             </Button>
                         </div>
                     </div>
@@ -62,29 +96,54 @@ export function ReportingPage() {
                     {/* Report Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {filteredReports.map((report) => (
-                            <Card key={report.id} className="p-4 bg-slate-900/40 border-slate-800/50 hover:border-brand-500/30 transition-all group">
-                                <div className="flex items-start justify-between">
-                                    <div className="p-2 bg-slate-800/50 rounded-lg group-hover:bg-brand-500/10 transition-colors">
-                                        <FileText className="h-6 w-6 text-brand-400" />
-                                    </div>
-                                    <Badge
-                                        variant={report.status === 'Ready' ? 'success' : report.status === 'Processing' ? 'outline' : 'error'}
-                                    >
-                                        {report.status}
-                                    </Badge>
+                            <Card
+                                key={report.id}
+                                onClick={() => setSelectedReport(report)}
+                                className={`p-4 bg-slate-900/40 border-slate-800/50 hover:border-brand-500/30 transition-all group relative overflow-hidden cursor-pointer ${selectedReport?.id === report.id ? 'ring-1 ring-brand-500/50 bg-brand-500/5' : ''}`}
+                            >
+                                <div className="absolute top-0 right-0 p-2 opacity-10 rotate-12 group-hover:rotate-0 transition-transform">
+                                    <FileText className="h-20 w-20 text-slate-700" />
                                 </div>
-                                <div className="mt-4">
+                                <div className="flex items-start justify-between relative z-10">
+                                    <div className="p-2 bg-slate-800/50 rounded-lg group-hover:bg-brand-500/10 transition-colors text-brand-400">
+                                        <FileText className="h-6 w-6" />
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <Badge
+                                            variant={report.status === 'Ready' ? 'success' : report.status === 'Expired' ? 'outline' : 'error'}
+                                        >
+                                            {report.status}
+                                        </Badge>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={(e) => handleDelete(report.id, e)}
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className="mt-4 relative z-10">
                                     <h3 className="text-sm font-semibold truncate" title={report.name}>{report.name}</h3>
-                                    <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-500 font-medium tracking-tight">
-                                        <span className="flex items-center"><Calendar className="h-3 w-3 mr-1" /> {report.date}</span>
-                                        <span className="flex items-center">Format: {report.type}</span>
+                                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-slate-500 font-medium tracking-tight">
+                                        <span className="flex items-center"><Calendar className="h-3 w-3 mr-1" /> {report.timestamp}</span>
+                                        <span className="px-1.5 py-0.5 rounded-md bg-slate-800/50 text-slate-400 uppercase">{report.type}</span>
                                         <span>{report.size}</span>
                                     </div>
                                 </div>
-                                <div className="mt-4 pt-4 border-t border-slate-800/50 flex justify-end">
-                                    <Button variant="ghost" size="sm" className="h-8 text-slate-400 hover:text-brand-400">
+                                <div className="mt-4 pt-4 border-t border-slate-800/50 flex justify-between items-center relative z-10">
+                                    <span className="text-[9px] text-slate-600 font-mono tracking-tighter truncate max-w-[120px]">
+                                        ID: {report.id}
+                                    </span>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 text-slate-400 hover:text-brand-400 font-bold tracking-widest text-[10px]"
+                                        onClick={(e) => handleRedownload(report, e)}
+                                    >
                                         <Download className="h-4 w-4 mr-2" />
-                                        Download
+                                        RE-DOWNLOAD
                                     </Button>
                                 </div>
                             </Card>
@@ -92,12 +151,129 @@ export function ReportingPage() {
                     </div>
 
                     {filteredReports.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-                            <FileText className="h-12 w-12 mb-4 opacity-20" />
-                            <p className="text-sm">No reports found matching your search.</p>
+                        <div className="flex flex-col items-center justify-center py-24 text-slate-500 bg-slate-900/20 rounded-xl border border-dashed border-slate-800/50">
+                            <FileText className="h-12 w-12 mb-4 opacity-10" />
+                            <p className="text-sm font-medium">No reports found.</p>
+                            <p className="text-xs mt-1 text-slate-600">Export data from Dashboard to see them here.</p>
                         </div>
                     )}
                 </main>
+
+                {/* Report Details Sidebar overlay */}
+                {selectedReport && (
+                    <div className="absolute inset-y-0 right-0 w-96 bg-slate-900 border-l border-slate-800 shadow-2xl z-50 transform transition-transform duration-300 flex flex-col">
+                        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                            <h2 className="text-sm font-bold flex items-center gap-2">
+                                <Info className="h-4 w-4 text-brand-400" />
+                                Report Intelligence
+                            </h2>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setSelectedReport(null)}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            <div className="space-y-4">
+                                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Name</label>
+                                    <p className="text-sm font-semibold mt-1 text-white">{selectedReport.name}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
+                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Format</label>
+                                        <p className="text-sm font-semibold mt-1 text-white">{selectedReport.type}</p>
+                                    </div>
+                                    <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
+                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Size</label>
+                                        <p className="text-sm font-semibold mt-1 text-white">{selectedReport.size}</p>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Generation Query (SPL)</label>
+                                    <div className="mt-2 p-3 bg-black/50 rounded-lg text-[11px] font-mono text-emerald-400 border border-emerald-500/20 leading-relaxed overflow-x-auto">
+                                        {selectedReport.query || 'manual_trigger | fields *'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-6 border-t border-slate-800">
+                                <h3 className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-4">Actions</h3>
+                                <div className="space-y-2">
+                                    <Button variant="primary" className="w-full justify-between group" onClick={(e) => handleRedownload(selectedReport!, e)}>
+                                        Download Now
+                                        <Download className="h-4 w-4 group-hover:translate-y-0.5 transition-transform" />
+                                    </Button>
+                                    <Button variant="outline" className="w-full justify-between" onClick={(e) => handleDelete(selectedReport.id, e)}>
+                                        Purge Archive
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-slate-900 border-t border-slate-800">
+                            <div className="flex items-center gap-2 text-[10px] text-slate-600">
+                                <Badge variant="outline" className="h-4 px-1 text-[8px]">SECURITY</Badge>
+                                <span>This report is classification: INTERNAL</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Scheduling Sidebar overlay */}
+                {isScheduling && (
+                    <div className="absolute inset-y-0 right-0 w-96 bg-slate-900 border-l border-slate-800 shadow-2xl z-50 transform transition-transform duration-300 flex flex-col">
+                        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+                            <h2 className="text-sm font-bold flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-amber-400" />
+                                Schedule Automation
+                            </h2>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setIsScheduling(false)}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                        <div className="flex-1 p-6 space-y-6">
+                            <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl space-y-2">
+                                <p className="text-xs text-amber-200 font-medium">Enterprise Automation</p>
+                                <p className="text-[10px] text-amber-500/70 leading-relaxed">Configure recurring reports to be generated and delivered to designated stakeholders automatically.</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Frequency</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button variant="outline" size="sm" className="bg-brand-500/10 border-brand-500/50">Daily</Button>
+                                        <Button variant="outline" size="sm">Weekly</Button>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Report Type</label>
+                                    <div className="grid grid-cols-3 gap-2 text-[10px]">
+                                        <Button variant="outline" size="sm">PDF</Button>
+                                        <Button variant="outline" size="sm">CSV</Button>
+                                        <Button variant="outline" size="sm">JSON</Button>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Delivery Channel</label>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+                                            <span className="text-xs text-slate-300">Email SMTP</span>
+                                            <Settings className="h-3 w-3 text-slate-600" />
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-800">
+                                            <span className="text-xs text-slate-300">Slack Webhook</span>
+                                            <ChevronRight className="h-3 w-3 text-slate-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-slate-800 bg-slate-900/50">
+                            <Button variant="primary" className="w-full shadow-lg shadow-brand-500/20" onClick={() => setIsScheduling(false)}>
+                                Create Schedule
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
