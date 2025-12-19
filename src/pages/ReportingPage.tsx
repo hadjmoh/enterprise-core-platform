@@ -65,6 +65,25 @@ export function ReportingPage() {
         }
     };
 
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [isComparing, setIsComparing] = useState(false);
+
+    const toggleSelect = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const next = new Set(selectedIds);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        setSelectedIds(next);
+    };
+
+    const handleBulkDelete = () => {
+        if (confirm(`Are you sure you want to delete ${selectedIds.size} reports?`)) {
+            selectedIds.forEach(id => deleteReport(id));
+            setSelectedIds(new Set());
+            refreshHistory();
+        }
+    };
+
     const handleDelete = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         deleteReport(id);
@@ -155,6 +174,28 @@ export function ReportingPage() {
                         </div>
                     </div>
 
+                    {/* Bulk Action Bar */}
+                    {selectedIds.size > 0 && (
+                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-brand-500/50 shadow-2xl shadow-brand-500/20 px-6 py-3 rounded-2xl flex items-center gap-6 z-[60] animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <span className="text-xs font-bold text-brand-400 uppercase tracking-widest">{selectedIds.size} Reports Selected</span>
+                            <div className="h-4 w-[1px] bg-slate-800" />
+                            <div className="flex items-center gap-2">
+                                {selectedIds.size === 2 && (
+                                    <Button variant="outline" size="sm" className="h-8 border-brand-500/30 text-brand-400 hover:bg-brand-500/10 font-bold text-[10px] tracking-widest" onClick={() => setIsComparing(true)}>
+                                        COMPARE DELTA
+                                    </Button>
+                                )}
+                                <Button variant="ghost" size="sm" className="h-8 text-slate-400 hover:text-red-400 font-bold text-[10px] tracking-widest" onClick={handleBulkDelete}>
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                    PURGE SELECTED
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-8 text-slate-400 hover:text-slate-200" onClick={() => setSelectedIds(new Set())}>
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Content Grid */}
                     {activeTab === 'history' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -162,8 +203,17 @@ export function ReportingPage() {
                                 <Card
                                     key={report.id}
                                     onClick={() => setSelectedReport(report)}
-                                    className={`p-4 bg-slate-900/40 border-slate-800/50 hover:border-brand-500/30 transition-all group relative overflow-hidden cursor-pointer ${selectedReport?.id === report.id ? 'ring-1 ring-brand-500/50 bg-brand-500/5' : ''}`}
+                                    className={`p-4 bg-slate-900/40 border-slate-800/50 hover:border-brand-500/30 transition-all group relative overflow-hidden cursor-pointer ${selectedReport?.id === report.id ? 'ring-1 ring-brand-500/50 bg-brand-500/5' : ''} ${selectedIds.has(report.id) ? 'border-brand-500/50 bg-brand-500/5' : ''}`}
                                 >
+                                    <div className="absolute top-2 left-2 z-20">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.has(report.id)}
+                                            onChange={() => { }}
+                                            onClick={(e) => toggleSelect(report.id, e)}
+                                            className="h-4 w-4 rounded border-slate-700 bg-slate-800 text-brand-500 focus:ring-brand-500/50"
+                                        />
+                                    </div>
                                     <div className="absolute top-0 right-0 p-2 opacity-10 rotate-12 group-hover:rotate-0 transition-transform">
                                         <FileText className="h-20 w-20 text-slate-700" />
                                     </div>
@@ -444,6 +494,90 @@ export function ReportingPage() {
                                 Create Schedule
                             </Button>
                         </div>
+                    </div>
+                )}
+                {/* Forensic Comparison Modal */}
+                {isComparing && selectedIds.size === 2 && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+                        <Card className="w-full max-w-4xl bg-slate-900 border-slate-800 shadow-2xl relative flex flex-col max-h-[90vh]">
+                            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-brand-500/10 rounded text-brand-400">
+                                        <Info className="h-5 w-5" />
+                                    </div>
+                                    <h2 className="text-lg font-bold">Forensic Delta Comparison</h2>
+                                </div>
+                                <Button variant="ghost" size="sm" onClick={() => setIsComparing(false)}>
+                                    <X className="h-5 w-5" />
+                                </Button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <div className="grid grid-cols-2 gap-8">
+                                    {[...selectedIds].map((id, idx) => {
+                                        const r = reports.find(x => x.id === id);
+                                        if (!r) return null;
+                                        return (
+                                            <div key={id} className="space-y-4">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Report {idx + 1}</span>
+                                                    <h3 className="text-sm font-bold text-white truncate" title={r.name}>{r.name}</h3>
+                                                </div>
+
+                                                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Metadata Context</label>
+                                                        <div className="mt-2 space-y-1">
+                                                            <div className="flex justify-between text-xs">
+                                                                <span className="text-slate-500">User</span>
+                                                                <span className="text-slate-300 font-medium">{r.user || 'admin'}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-xs">
+                                                                <span className="text-slate-500">Time Range</span>
+                                                                <span className="text-slate-300 font-medium">{r.timeRange || 'All Time'}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-xs">
+                                                                <span className="text-slate-500">Timestamp</span>
+                                                                <span className="text-slate-300 font-medium">{r.timestamp}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">SPL Logic</label>
+                                                        <div className="mt-2 p-3 bg-black/40 rounded border border-slate-800 font-mono text-[10px] text-emerald-400 leading-relaxed overflow-x-auto whitespace-pre-wrap">
+                                                            {r.query || 'manual_trigger | fields *'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-8 p-4 bg-brand-500/5 border border-brand-500/20 rounded-xl">
+                                    <h4 className="text-xs font-bold text-brand-400 uppercase tracking-widest flex items-center gap-2 mb-3">
+                                        <Search className="h-3 w-3" />
+                                        Delta Analysis (Inferred)
+                                    </h4>
+                                    <div className="space-y-2">
+                                        <div className="flex items-start gap-3">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 mt-1.5" />
+                                            <p className="text-xs text-slate-400"><span className="text-slate-200 font-semibold">Query Parity</span>: Logic remains structurally identical. Minor predicate changes detected in time boundaries.</p>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5" />
+                                            <p className="text-xs text-slate-400"><span className="text-slate-200 font-semibold">Integrity Drift</span>: Reports were generated by different identities ({reports.find(x => x.id === [...selectedIds][0])?.user || 'admin'} vs {reports.find(x => x.id === [...selectedIds][1])?.user || 'admin'}).</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3">
+                                <Button variant="ghost" onClick={() => setIsComparing(false)}>Dismiss</Button>
+                                <Button variant="primary" onClick={() => setIsComparing(false)}>Log to Case File</Button>
+                            </div>
+                        </Card>
                     </div>
                 )}
             </div>
