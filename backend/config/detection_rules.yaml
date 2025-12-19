@@ -1,0 +1,90 @@
+# Detection Rules for Enterprise Core Platform
+
+- id: "auth-001"
+  name: "Failed Login Attempt"
+  description: "Detects failed authentication attempts"
+  severity: "medium"
+  enabled: true
+  conditions:
+    - field: "event_type"
+      operator: "eq"
+      value: "authentication"
+    - field: "status"
+      operator: "eq"
+      value: "failed"
+  metadata:
+    mitre_attack: "T1110"
+    category: "credential_access"
+
+- id: "auth-002"
+  name: "Successful Login from Malicious IP"
+  description: "Successful authentication from known malicious IP"
+  severity: "critical"
+  enabled: true
+  conditions:
+    - field: "event_type"
+      operator: "eq"
+      value: "authentication"
+    - field: "status"
+      operator: "eq"
+      value: "success"
+    - field: "src_ip_threat_malicious"
+      operator: "eq"
+      value: true
+  metadata:
+    mitre_attack: "T1078"
+    category: "initial_access"
+
+- id: "net-001"
+  name: "Large Data Transfer"
+  description: "Detects unusually large data transfers"
+  severity: "high"
+  enabled: true
+  conditions:
+    - field: "bytes"
+      operator: "gt"
+      value: 10000000
+  metadata:
+    mitre_attack: "T1048"
+    category: "exfiltration"
+
+- id: "net-002"
+  name: "Connection to High-Risk Country"
+  description: "Network connection to high-risk geographic location"
+  severity: "medium"
+  enabled: true
+  conditions:
+    - field: "dst_ip_geo_country"
+      operator: "in"
+      value: ["KP", "IR", "SY"]
+  metadata:
+    category: "command_and_control"
+
+- id: "file-001"
+  name: "Malware Hash Detected"
+  description: "Known malware file hash detected"
+  severity: "critical"
+  enabled: true
+  conditions:
+    - field: "file_threat_malicious"
+      operator: "eq"
+      value: true
+  metadata:
+    mitre_attack: "T1204"
+    category: "execution"
+
+- id: "priv-001"
+  name: "Privilege Escalation Attempt"
+  description: "Detects potential privilege escalation"
+  severity: "high"
+  enabled: true
+  conditions:
+    - field: "event_type"
+      operator: "eq"
+      value: "privilege_change"
+    - field: "new_privilege"
+      operator: "contains"
+      value: "admin"
+  metadata:
+    mitre_attack: "T1068"
+    category: "privilege_escalation"

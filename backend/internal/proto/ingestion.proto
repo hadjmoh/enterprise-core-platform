@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package ingestion;
+
+option go_package = "enterprise-core/backend/internal/proto";
+
+service Ingestor {
+  rpc SendEvent (LogEvent) returns (IngestResponse);
+  rpc StreamEvents (stream LogEvent) returns (IngestResponse);
+}
+
+message LogEvent {
+  int64 time = 1;
+  string host = 2;
+  string source = 3;
+  string sourcetype = 4;
+  string index = 5;
+  string data = 6;
+  map<string, string> fields = 7;
+}
+
+message IngestResponse {
+  bool success = 1;
+  string message = 2;
+}
