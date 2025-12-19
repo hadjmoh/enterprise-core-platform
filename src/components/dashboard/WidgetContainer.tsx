@@ -34,7 +34,7 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
         setActiveDrillDown({ x, y, filters });
     };
 
-    const executeDrillDown = (mode: 'include' | 'exclude' | 'pivot' | 'global' | 'alert' | 'timezoom') => {
+    const executeDrillDown = (mode: 'include' | 'exclude' | 'pivot' | 'global' | 'alert' | 'timezoom' | 'copy' | 'forensic') => {
         if (!activeDrillDown) return;
 
         const { filters } = activeDrillDown;
@@ -63,6 +63,16 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
             setHistory(prev => [...prev, `${currentSpl} | where _time > "${start}" AND _time < "${end}"`]);
         } else if (mode === 'alert') {
             alert('Opening Alert Creation Modal with filters: ' + JSON.stringify(filters));
+        } else if (mode === 'copy') {
+            const fragment = Object.entries(filters)
+                .filter(([k]) => !k.startsWith('_'))
+                .map(([k, v]) => `${k}="${v}"`)
+                .join(' AND ');
+            navigator.clipboard.writeText(`| search ${fragment}`);
+            // Briefly show notification (simulated)
+        } else if (mode === 'forensic') {
+            const firstVal = String(Object.values(filters)[0]);
+            window.open(`https://www.virustotal.com/gui/search/${encodeURIComponent(firstVal)}`, '_blank');
         } else if (mode === 'global' && onGlobalSearch) {
             const refinement = Object.entries(filters)
                 .filter(([k]) => !k.startsWith('_'))
