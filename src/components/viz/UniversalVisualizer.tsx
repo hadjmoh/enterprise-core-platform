@@ -128,7 +128,15 @@ export const UniversalVisualizer: React.FC<UniversalVisualizerProps> = ({ progre
                                 )}
                             </div>
                             <div className="h-64 bg-slate-800/20 rounded-lg border border-slate-800 p-4">
-                                <DistributionChart data={results} type={vizType} onDrillDown={onDrillDown} />
+                                <DistributionChart
+                                    data={results}
+                                    type={vizType}
+                                    onDrillDown={onDrillDown}
+                                    thresholds={[
+                                        { value: 500, color: '#fbbf24' },
+                                        { value: 1000, color: '#ef4444' }
+                                    ]}
+                                />
                             </div>
                         </div>
                     );
@@ -170,11 +178,24 @@ export const UniversalVisualizer: React.FC<UniversalVisualizerProps> = ({ progre
                                                     else if (code >= 200) pillStyle = "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
                                                 } else if (key === 'latency' || key === 'duration') {
                                                     const lat = parseFloat(sVal);
-                                                    if (lat > 1000) pillStyle = "text-red-400 font-bold";
+                                                    if (lat > 1000) pillStyle = "text-red-400 font-bold underline decoration-red-500/50 underline-offset-4";
                                                     else if (lat > 500) pillStyle = "text-amber-400 font-bold";
                                                 } else if (key.toLowerCase().includes('level')) {
                                                     if (sVal === 'ERROR') pillStyle = "text-red-500 font-black";
                                                     if (sVal === 'WARN') pillStyle = "text-amber-500 font-bold";
+                                                }
+
+                                                // Fuzzy Anomaly Detection (Visual Forensics)
+                                                const lowerVal = sVal.toLowerCase();
+                                                const isAnomaly = lowerVal.includes('error') ||
+                                                    lowerVal.includes('fail') ||
+                                                    lowerVal.includes('deny') ||
+                                                    lowerVal.includes('critical') ||
+                                                    lowerVal.includes('exception') ||
+                                                    lowerVal.includes('unauthorized');
+
+                                                if (isAnomaly && !pillStyle) {
+                                                    pillStyle = "text-red-400 font-bold border-b border-red-500/50";
                                                 }
 
                                                 return (

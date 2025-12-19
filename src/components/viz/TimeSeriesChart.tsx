@@ -85,7 +85,7 @@ export const TimeSeriesChartImpl: React.FC<TimeSeriesChartProps> = ({ data, span
     }, [data, span, onDrillDown, timezone]);
 
     const chartData = useMemo(() => {
-        const datasets = workerDatasets.map((ds, i) => ({
+        const baseDatasets = workerDatasets.map((ds, i) => ({
             ...ds,
             borderColor: i === 0 ? '#6366f1' : '#10b981', // indigo / emerald
             backgroundColor: i === 0 ? 'rgba(99, 102, 241, 0.1)' : 'rgba(16, 185, 129, 0.1)',
@@ -96,6 +96,8 @@ export const TimeSeriesChartImpl: React.FC<TimeSeriesChartProps> = ({ data, span
             spanGaps: true,
             data: ds.data as unknown as (number | null)[]
         })) as unknown as unknown[];
+
+        const datasets = [...baseDatasets];
 
         // Add threshold baseline datasets
         if (thresholds && thresholds.length > 0 && workerDatasets.length > 0) {
@@ -116,6 +118,27 @@ export const TimeSeriesChartImpl: React.FC<TimeSeriesChartProps> = ({ data, span
 
         return { datasets: datasets as ChartJSData<'line'>['datasets'] };
     }, [workerDatasets, isHighDensity, thresholds]);
+
+    const alertZonePlugin = useMemo(() => ({
+        id: 'alertZone',
+        beforeDraw: (chart: ChartJS<'line'>) => {
+            if (!thresholds) return;
+            const { ctx, chartArea: { top, bottom, left, right }, scales: { y } } = chart;
+            if (!y) return;
+
+            thresholds.forEach(t => {
+                if (t.severity === 'critical' || t.severity === 'warning') {
+                    const yPos = y.getPixelForValue(t.value);
+                    if (yPos < bottom && yPos > top) {
+                        ctx.save();
+                        ctx.fillStyle = t.severity === 'critical' ? 'rgba(239, 68, 68, 0.05)' : 'rgba(251, 191, 36, 0.05)';
+                        ctx.fillRect(left, top, right - left, yPos - top);
+                        ctx.restore();
+                    }
+                }
+            });
+        }
+    }), [thresholds]);
 
     const options: ChartOptions<'line'> = useMemo(() => ({
         responsive: true,
@@ -265,7 +288,7 @@ export const TimeSeriesChartImpl: React.FC<TimeSeriesChartProps> = ({ data, span
         );
     }
 
-    return <Line data={chartData} options={options} />;
+    return <Line data={chartData} options={options} plugins={[alertZonePlugin]} />;
 };
 
 export const TimeSeriesChart = React.memo(TimeSeriesChartImpl);

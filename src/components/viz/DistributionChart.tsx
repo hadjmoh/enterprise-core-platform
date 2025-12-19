@@ -23,14 +23,17 @@ ChartJS.register(
     Legend
 );
 
+import type { Threshold } from '../../types/viz';
+
 interface DistributionChartProps {
     data: Record<string, unknown>[];
     type: 'bar' | 'pie';
     title?: string;
     onDrillDown?: (filters: Record<string, unknown>, x: number, y: number) => void;
+    thresholds?: Threshold[];
 }
 
-const DistributionChartImpl: React.FC<DistributionChartProps> = ({ data, type, title, onDrillDown }) => {
+const DistributionChartImpl: React.FC<DistributionChartProps> = ({ data, type, title, onDrillDown, thresholds }) => {
     const palette = useMemo(() => [
         'rgba(99, 102, 241, 0.8)', // indigo
         'rgba(16, 185, 129, 0.8)', // emerald
@@ -65,8 +68,15 @@ const DistributionChartImpl: React.FC<DistributionChartProps> = ({ data, type, t
             return {
                 label: vKey,
                 data: data.map((d: Record<string, unknown>) => d[vKey]),
-                backgroundColor: type === 'pie'
-                    ? data.map((d: Record<string, unknown>) => {
+                backgroundColor: data.map((d: Record<string, unknown>) => {
+                    const val = d[vKey] as number;
+                    const activeThreshold = thresholds
+                        ?.sort((a, b) => b.value - a.value)
+                        .find(t => val >= t.value);
+
+                    if (activeThreshold) return activeThreshold.color;
+
+                    if (type === 'pie') {
                         const labelValue = String(d[labelKey]);
                         let hash = 0;
                         for (let j = 0; j < labelValue.length; j++) {
@@ -74,8 +84,9 @@ const DistributionChartImpl: React.FC<DistributionChartProps> = ({ data, type, t
                         }
                         const colorIdx = Math.abs(hash) % palette.length;
                         return palette[colorIdx];
-                    })
-                    : baseColor,
+                    }
+                    return baseColor;
+                }),
                 borderColor: type === 'pie' ? 'rgba(15, 23, 42, 1)' : baseColor.replace('0.8', '1'),
                 borderWidth: 1,
                 borderRadius: type === 'bar' ? 4 : 0,
@@ -84,7 +95,7 @@ const DistributionChartImpl: React.FC<DistributionChartProps> = ({ data, type, t
         });
 
         return { labels, datasets };
-    }, [data, type, palette, schema]);
+    }, [data, type, palette, schema, thresholds]);
 
     const options: ChartOptions<'bar' | 'pie'> = useMemo(() => ({
         responsive: true,
