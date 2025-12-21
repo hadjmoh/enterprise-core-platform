@@ -164,7 +164,7 @@ export const EntityProfilePage: React.FC = () => {
                                         </div>
                                         <div className="ml-12 flex-1 pt-1">
                                             <div className="flex items-center justify-between mb-1">
-                                                <span className="font-bold text-slate-200 capitalize">{act.action.replace('_', ' ')}</span>
+                                                <span className="font-bold text-slate-200 capitalize">{act.action.replaceAll('_', ' ')}</span>
                                                 <span className="text-[10px] text-slate-500 font-mono">{new Date(act.timestamp).toLocaleTimeString()}</span>
                                             </div>
                                             <div className="text-sm text-slate-400 flex items-center gap-2">

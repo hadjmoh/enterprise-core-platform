@@ -154,7 +154,7 @@ export const UniversalVisualizer: React.FC<UniversalVisualizerProps> = ({ progre
                                 <thead className="bg-slate-800/80 text-slate-300 font-medium">
                                     <tr>
                                         {results[0] && Object.keys(results[0]).map(key => (
-                                            <th key={key} className="px-4 py-2 capitalize">{key.replace('_', ' ')}</th>
+                                            <th key={key} className="px-4 py-2 capitalize">{key.replaceAll('_', ' ')}</th>
                                         ))}
                                     </tr>
                                 </thead>

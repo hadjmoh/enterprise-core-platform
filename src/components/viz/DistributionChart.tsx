@@ -87,7 +87,7 @@ const DistributionChartImpl: React.FC<DistributionChartProps> = ({ data, type, t
                     }
                     return baseColor;
                 }),
-                borderColor: type === 'pie' ? 'rgba(15, 23, 42, 1)' : baseColor.replace('0.8', '1'),
+                borderColor: type === 'pie' ? 'rgba(15, 23, 42, 1)' : baseColor.replaceAll('0.8', '1'),
                 borderWidth: 1,
                 borderRadius: type === 'bar' ? 4 : 0,
                 hoverOffset: 4,

@@ -208,7 +208,7 @@ export function WidgetContainer({ id, title, spl, isLocked, onRemove, onGlobalSe
                                     if (el) {
                                         const canvas = await (await import('html2canvas')).default(el, { backgroundColor: '#0f172a' });
                                         const link = document.createElement('a');
-                                        link.download = `${title.toLowerCase().replace(/\s+/g, '_')}_snapshot.png`;
+                                        link.download = `${title.toLowerCase().replaceAll(/\s+/g, '_')}_snapshot.png`;
                                         link.href = canvas.toDataURL();
                                         link.click();
                                     }

@@ -62,7 +62,7 @@ const addReportToHistory = (
         id: uuidv4(),
         name,
         type,
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        timestamp: new Date().toISOString().replaceAll('T', ' ').substring(0, 16),
         size: sizeStr,
         status: 'Ready',
         query: meta?.query,
@@ -80,7 +80,7 @@ export const exportToCSV = (data: Record<string, unknown>[], filename: string, m
     const rows = data.map(row =>
         headers.map(header => {
             const val = row[header];
-            const escaped = String(val).replace(/"/g, '""');
+            const escaped = String(val).replaceAll(/"/g, '""');
             return `"${escaped}"`;
         }).join(',')
     );
@@ -220,7 +220,7 @@ export const exportToPDF = async (elementId: string, title: string, meta?: Expor
 
         const pdfBlob = pdf.output('blob');
         addReportToHistory(title, 'PDF', pdfBlob.size, meta);
-        pdf.save(`${title.replace(/\s+/g, '_').toLowerCase()}.pdf`);
+        pdf.save(`${title.replaceAll(/\s+/g, '_').toLowerCase()}.pdf`);
     } catch (error) {
         console.error('PDF Generation failed:', error);
     }

@@ -214,7 +214,7 @@ export const ThreatIntelPage: React.FC = () => {
                                                 ind.pattern.includes('domain') ? <span className="flex items-center gap-1"><Globe className="h-3 w-3" /> Domain</span> :
                                                     <span className="flex items-center gap-1"><FileText className="h-3 w-3" /> Hash</span>}
                                         </td>
-                                        <td className="p-3 font-mono text-slate-200">{ind.pattern.replace(/\[\w+:value = '|'\]/g, '')}</td>
+                                        <td className="p-3 font-mono text-slate-200">{ind.pattern.replaceAll(/\[\w+:value = '|'\]/g, '')}</td>
                                         <td className="p-3 text-slate-400">{ind.source}</td>
                                         <td className="p-3 text-slate-500">{new Date(ind.created).toLocaleTimeString()}</td>
                                     </tr>
