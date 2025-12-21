@@ -118,15 +118,23 @@ export function ReportingPage() {
 
                 <main className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
                     {/* Tab Navigation */}
-                    <div className="flex items-center gap-1 border-b border-slate-800">
+                    <div className="flex items-center gap-1 border-b border-slate-800" role="tablist" aria-label="Reporting Sections">
                         <button
-                            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'history' ? 'text-brand-400 border-b-2 border-brand-500 bg-brand-500/5' : 'text-slate-500 hover:text-slate-300'}`}
+                            role="tab"
+                            aria-selected={activeTab === 'history'}
+                            aria-controls="history-panel"
+                            id="tab-history"
+                            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/50 ${activeTab === 'history' ? 'text-brand-400 border-b-2 border-brand-500 bg-brand-500/5' : 'text-slate-500 hover:text-slate-300'}`}
                             onClick={() => setActiveTab('history')}
                         >
                             Export History
                         </button>
                         <button
-                            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${activeTab === 'schedules' ? 'text-brand-400 border-b-2 border-brand-500 bg-brand-500/5' : 'text-slate-500 hover:text-slate-300'}`}
+                            role="tab"
+                            aria-selected={activeTab === 'schedules'}
+                            aria-controls="schedules-panel"
+                            id="tab-schedules"
+                            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all focus:outline-none focus:ring-2 focus:ring-brand-500/50 ${activeTab === 'schedules' ? 'text-brand-400 border-b-2 border-brand-500 bg-brand-500/5' : 'text-slate-500 hover:text-slate-300'}`}
                             onClick={() => setActiveTab('schedules')}
                         >
                             Automation Schedules
@@ -203,7 +211,16 @@ export function ReportingPage() {
                                 <Card
                                     key={report.id}
                                     onClick={() => setSelectedReport(report)}
-                                    className={`p-4 bg-slate-900/40 border-slate-800/50 hover:border-brand-500/30 transition-all group relative overflow-hidden cursor-pointer ${selectedReport?.id === report.id ? 'ring-1 ring-brand-500/50 bg-brand-500/5' : ''} ${selectedIds.has(report.id) ? 'border-brand-500/50 bg-brand-500/5' : ''}`}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            setSelectedReport(report);
+                                        }
+                                    }}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`View details for report: ${report.name}`}
+                                    className={`p-4 bg-slate-900/40 border-slate-800/50 hover:border-brand-500/30 transition-all group relative overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/50 ${selectedReport?.id === report.id ? 'ring-1 ring-brand-500/50 bg-brand-500/5' : ''} ${selectedIds.has(report.id) ? 'border-brand-500/50 bg-brand-500/5' : ''}`}
                                 >
                                     <div className="absolute top-2 left-2 z-20">
                                         <input

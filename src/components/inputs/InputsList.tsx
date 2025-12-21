@@ -22,7 +22,7 @@ function InputItem({ type, name, source, status, port }: InputItemProps) {
     const Icon = iconMap[type];
 
     return (
-        <div className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-800 rounded-lg group hover:border-slate-700 transition-colors">
+        <div className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-800 rounded-lg group hover:border-slate-700 transition-colors" role="listitem">
             <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-lg bg-slate-800 flex items-center justify-center">
                     <Icon className="h-5 w-5 text-slate-400 group-hover:text-brand-400 transition-colors" />

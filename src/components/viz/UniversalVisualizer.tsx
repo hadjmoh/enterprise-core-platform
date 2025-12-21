@@ -162,8 +162,18 @@ export const UniversalVisualizer: React.FC<UniversalVisualizerProps> = ({ progre
                                     {results.slice(0, 10).map((row: Record<string, unknown>, i: number) => (
                                         <tr
                                             key={i}
-                                            className="hover:bg-slate-800/40 transition-colors cursor-pointer"
+                                            className="hover:bg-slate-800/40 transition-colors cursor-pointer focus:outline-none focus:bg-slate-800 focus:ring-1 focus:ring-brand-500/50"
                                             onClick={(e) => onDrillDown?.(row, e.clientX, e.clientY)}
+                                            role="button"
+                                            tabIndex={0}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                    onDrillDown?.(row, rect.left + rect.width / 2, rect.top + rect.height / 2);
+                                                }
+                                            }}
+                                            aria-label="View drill-down options for this row"
                                         >
                                             {Object.entries(row).map(([key, val], j: number) => {
                                                 const sVal = String(val);

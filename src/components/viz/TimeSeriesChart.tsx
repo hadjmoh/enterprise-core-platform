@@ -288,7 +288,28 @@ export const TimeSeriesChartImpl: React.FC<TimeSeriesChartProps> = ({ data, span
         );
     }
 
-    return <Line data={chartData} options={options} plugins={[alertZonePlugin]} />;
+    return (
+        <div
+            className="w-full h-full relative focus:outline-none focus:ring-2 focus:ring-brand-500/50 rounded-lg cursor-pointer"
+            tabIndex={0}
+            role="button"
+            aria-label="Interactive Time Series Chart. Use mouse to zoom/pan. Press Enter for tactical drill-down."
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    // For accessibility, we trigger a generic drill-down if specific points aren't selectable via keyboard
+                    if (onDrillDown && workerDatasets.length > 0) {
+                        const firstDS = workerDatasets[0];
+                        if (firstDS.data.length > 0) {
+                            onDrillDown({ [firstDS.label]: firstDS.data[0].y }, 0, 0);
+                        }
+                    }
+                }
+            }}
+        >
+            <Line data={chartData} options={options} plugins={[alertZonePlugin]} />
+        </div>
+    );
 };
 
 export const TimeSeriesChart = React.memo(TimeSeriesChartImpl);

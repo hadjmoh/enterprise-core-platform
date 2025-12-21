@@ -181,7 +181,25 @@ const DistributionChartImpl: React.FC<DistributionChartProps> = ({ data, type, t
     }), [title, type, onDrillDown, schema]);
 
     return (
-        <div className="w-full h-full relative">
+        <div
+            className="w-full h-full relative focus:outline-none focus:ring-2 focus:ring-brand-500/50 rounded-lg cursor-pointer"
+            tabIndex={0}
+            role="button"
+            aria-label={`Interactive ${type} chart: ${title || 'Data Distribution'}. Press Enter for tactical drill-down.`}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    // For accessibility, we trigger a generic drill-down if specific points aren't selectable via keyboard
+                    if (onDrillDown && data.length > 0) {
+                        const firstRow = data[0];
+                        const { labelKey } = schema;
+                        if (labelKey) {
+                            onDrillDown({ [labelKey]: firstRow[labelKey] }, 0, 0);
+                        }
+                    }
+                }
+            }}
+        >
             {type === 'pie' ? (
                 <Pie data={chartData as ChartJSData<'pie'>} options={options as ChartOptions<'pie'>} />
             ) : (
