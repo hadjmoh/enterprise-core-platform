@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import type { Layout, LayoutItem } from 'react-grid-layout';
 
 export interface Widget {
@@ -78,7 +79,7 @@ export function useDashboard() {
     }, []);
 
     const addWidget = useCallback((widget: Omit<Widget, 'id' | 'layout'>) => {
-        const id = `w-${Date.now()}`;
+        const id = uuidv4();
         const newWidget: Widget = {
             ...widget,
             id,

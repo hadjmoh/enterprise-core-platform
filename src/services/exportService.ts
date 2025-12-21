@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Export Service
@@ -58,7 +59,7 @@ const addReportToHistory = (
         : `${(sizeInBytes / 1024).toFixed(0)} KB`;
 
     const newReport: ReportRecord = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: uuidv4(),
         name,
         type,
         timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),

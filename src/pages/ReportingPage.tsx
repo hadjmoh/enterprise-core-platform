@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { Sidebar } from '../components/layout/Sidebar';
 import { Header } from '../components/layout/Header';
 import { Card } from '../components/ui/Card';
@@ -47,7 +48,7 @@ export function ReportingPage() {
             return;
         }
         const schedule: ScheduledReport = {
-            id: Math.random().toString(36).substring(2, 9),
+            id: uuidv4(),
             name: newSchedule.name,
             freq: (newSchedule.freq as any) || 'Daily',
             type: (newSchedule.type as any) || 'PDF',

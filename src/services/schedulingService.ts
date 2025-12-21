@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+
 /**
  * Scheduling Service
  * Manages recurring report automated triggers.
@@ -47,7 +49,7 @@ export const createMockSchedule = (count: number) => {
 
     for (let i = 0; i < count; i++) {
         saveSchedule({
-            id: Math.random().toString(36).substring(2, 9),
+            id: uuidv4(),
             name: names[i % names.length],
             freq: freqs[i % freqs.length],
             type: 'PDF',

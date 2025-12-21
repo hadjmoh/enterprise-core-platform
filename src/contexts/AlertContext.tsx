@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, type ReactNode } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import type { Alert } from '../types/alert';
 import { AlertContext } from './AlertContextInstance';
 
@@ -20,7 +21,7 @@ export function AlertProvider({ children }: { children: ReactNode }) {
     const addAlert = useCallback((newAlert: Omit<Alert, 'id' | 'timestamp' | 'isRead'>) => {
         const alert: Alert = {
             ...newAlert,
-            id: Math.random().toString(36).substring(2, 9),
+            id: uuidv4(),
             timestamp: new Date().toISOString(),
             isRead: false,
         };

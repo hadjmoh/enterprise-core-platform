@@ -44,7 +44,7 @@ class IncidentService {
 
     createIncidentFromSignal(signal: DetectionSignal): Incident {
         const incident: Incident = {
-            id: `INC-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            id: `INC-${uuidv4()}`,
             title: `Detection: ${signal.ruleName}`,
             description: signal.message,
             severity: signal.severity as IncidentSeverity,
