@@ -7,6 +7,9 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { UserPage } from './pages/UserPage';
 import { DataInputsPage } from './pages/DataInputsPage';
+import { SecurityDashboardPage } from './pages/SecurityDashboardPage';
+import { ThreatIntelPage } from './pages/ThreatIntelPage';
+import { SecurityRulesPage } from './pages/SecurityRulesPage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 function App() {
@@ -40,6 +43,30 @@ function App() {
                   element={
                     <DashboardLayout>
                       <DataInputsPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/security/dashboard"
+                  element={
+                    <DashboardLayout>
+                      <SecurityDashboardPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/threat-intel"
+                  element={
+                    <DashboardLayout>
+                      <ThreatIntelPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/security/rules"
+                  element={
+                    <DashboardLayout>
+                      <SecurityRulesPage />
                     </DashboardLayout>
                   }
                 />
