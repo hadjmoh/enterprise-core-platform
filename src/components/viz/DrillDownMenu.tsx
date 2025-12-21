@@ -56,10 +56,14 @@ export const DrillDownMenu: React.FC<DrillDownMenuProps> = ({ x, y, filters, onA
             <div
                 className="fixed inset-0 z-40 bg-transparent"
                 onClick={onClose}
+                role="presentation"
+                aria-hidden="true"
             />
             <div
                 style={style}
                 className="w-64 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-1 animate-in zoom-in-95 duration-150 backdrop-blur-xl ring-1 ring-white/10"
+                role="menu"
+                aria-label="Tactical Analysis Menu"
             >
                 <div className="px-3 py-2 border-b border-slate-800/50 flex items-center justify-between">
                     <div>

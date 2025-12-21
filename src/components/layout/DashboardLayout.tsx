@@ -58,6 +58,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 <div
                     className="fixed inset-0 z-30 bg-slate-950/80 backdrop-blur-sm"
                     onClick={() => setSidebarOpen(false)}
+                    role="presentation"
+                    aria-hidden="true"
                 />
             )}
         </div>

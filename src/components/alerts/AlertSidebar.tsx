@@ -43,11 +43,18 @@ export function AlertSidebar({ isOpen, onClose }: AlertSidebarProps) {
                 <div
                     className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-40 transition-opacity duration-300"
                     onClick={onClose}
+                    role="presentation"
+                    aria-hidden="true"
                 />
             )}
 
             {/* Panel */}
-            <div className={`fixed top-0 right-0 h-full w-80 sm:w-96 bg-slate-900 border-l border-slate-800 shadow-2xl z-50 transform transition-transform duration-500 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <div
+                className={`fixed top-0 right-0 h-full w-80 sm:w-96 bg-slate-900 border-l border-slate-800 shadow-2xl z-50 transform transition-transform duration-500 ease-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="alert-sidebar-title"
+            >
                 <div className="flex flex-col h-full">
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b border-slate-800 bg-slate-900/50">
@@ -56,11 +63,11 @@ export function AlertSidebar({ isOpen, onClose }: AlertSidebarProps) {
                                 <Bell className="h-5 w-5 text-brand" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-white">Alert Intelligence</h3>
+                                <h3 id="alert-sidebar-title" className="text-lg font-bold text-white">Alert Intelligence</h3>
                                 <p className="text-xs text-slate-500 uppercase tracking-tighter">Active Incident HUD</p>
                             </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+                        <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0" title="Close Panel" aria-label="Close Panel">
                             <X className="h-5 w-5" />
                         </Button>
                     </div>
@@ -79,7 +86,7 @@ export function AlertSidebar({ isOpen, onClose }: AlertSidebarProps) {
                                     onChange={(e) => setShowUnreadOnly(e.target.checked)}
                                     className="sr-only"
                                 />
-                                <div className={`w-6 h-3 rounded-full transition-colors relative ${showUnreadOnly ? 'bg-brand' : 'bg-slate-700'}`}>
+                                <div className={`w-6 h-3 rounded-full transition-colors relative ${showUnreadOnly ? 'bg-brand' : 'bg-slate-700'} ring-offset-slate-900 focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2`}>
                                     <div className={`absolute top-0.5 w-2 h-2 rounded-full bg-white transition-transform ${showUnreadOnly ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                                 </div>
                                 <span className={`text-[10px] font-bold uppercase transition-colors ${showUnreadOnly ? 'text-brand' : 'text-slate-500 group-hover:text-slate-400'}`}>Unread</span>
@@ -93,6 +100,7 @@ export function AlertSidebar({ isOpen, onClose }: AlertSidebarProps) {
                                         size="sm"
                                         onClick={clearRead}
                                         title="Clear Read"
+                                        aria-label="Clear Read Alerts"
                                         className="text-xs h-7 w-7 p-0 text-slate-500 hover:text-amber-400"
                                     >
                                         <Eraser className="h-3.5 w-3.5" />
@@ -103,6 +111,7 @@ export function AlertSidebar({ isOpen, onClose }: AlertSidebarProps) {
                                     size="sm"
                                     onClick={clearAll}
                                     title="Clear All"
+                                    aria-label="Clear All Alerts"
                                     className="text-xs h-7 w-7 p-0 text-slate-500 hover:text-red-400"
                                 >
                                     <Trash2 className="h-3.5 w-3.5" />
@@ -124,8 +133,17 @@ export function AlertSidebar({ isOpen, onClose }: AlertSidebarProps) {
                             filteredAlerts.map((alert: Alert) => (
                                 <div
                                     key={alert.id}
-                                    className={`group relative p-4 rounded-xl border transition-all duration-300 ${alert.isRead ? 'bg-slate-900/30 border-slate-800/50' : 'bg-slate-800/40 border-slate-700 shadow-lg shadow-black/20'}`}
+                                    className={`group relative p-4 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-slate-900 cursor-pointer ${alert.isRead ? 'bg-slate-900/30 border-slate-800/50' : 'bg-slate-800/40 border-slate-700 shadow-lg shadow-black/20'}`}
                                     onClick={() => markAsRead(alert.id)}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            markAsRead(alert.id);
+                                        }
+                                    }}
+                                    aria-label={`Mark alert ${alert.title} as read`}
                                 >
                                     <div className="flex items-start gap-3">
                                         <div className="mt-1">{getIcon(alert.severity)}</div>
