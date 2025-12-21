@@ -24,6 +24,15 @@ import { identityService } from '../services/identityService';
 import type { Incident, IncidentStatus } from '../services/incidentService';
 import { cn } from '../lib/utils';
 
+const IncidentMetadataField = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="space-y-1">
+        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{label}</span>
+        <div className="flex items-center gap-2 text-sm text-slate-300">
+            {children}
+        </div>
+    </div>
+);
+
 export const IncidentReviewPage: React.FC = () => {
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
@@ -234,30 +243,21 @@ export const IncidentReviewPage: React.FC = () => {
                             <div className="flex-1 overflow-y-auto p-6 space-y-8">
                                 {/* Metadata Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="space-y-1">
-                                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Assignee</span>
-                                        <div className="flex items-center gap-2 text-sm text-slate-300">
-                                            <div className="h-6 w-6 rounded-full bg-brand-500 flex items-center justify-center text-[10px]">EA</div>
-                                            <span>{selectedIncident.assignee || 'Unassigned'}</span>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">First Detected</span>
-                                        <div className="flex items-center gap-2 text-sm text-slate-300">
-                                            <Clock className="h-4 w-4 text-slate-500" />
-                                            <span>{new Date(selectedIncident.createdAt).toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Risk Score</span>
-                                        <div className="flex items-center gap-2">
-                                            <AlertTriangle className={cn(
-                                                "h-4 w-4",
-                                                selectedIncident.riskScore > 80 ? "text-red-500" : "text-amber-500"
-                                            )} />
-                                            <span className="text-lg font-bold">{selectedIncident.riskScore}</span>
-                                        </div>
-                                    </div>
+                                    <IncidentMetadataField label="Assignee">
+                                        <div className="h-6 w-6 rounded-full bg-brand-500 flex items-center justify-center text-[10px]">EA</div>
+                                        <span>{selectedIncident.assignee || 'Unassigned'}</span>
+                                    </IncidentMetadataField>
+                                    <IncidentMetadataField label="First Detected">
+                                        <Clock className="h-4 w-4 text-slate-500" />
+                                        <span>{new Date(selectedIncident.createdAt).toLocaleString()}</span>
+                                    </IncidentMetadataField>
+                                    <IncidentMetadataField label="Risk Score">
+                                        <AlertTriangle className={cn(
+                                            "h-4 w-4",
+                                            selectedIncident.riskScore > 80 ? "text-red-500" : "text-amber-500"
+                                        )} />
+                                        <span className="text-lg font-bold">{selectedIncident.riskScore}</span>
+                                    </IncidentMetadataField>
                                 </div>
 
                                 {/* Identity Section */}

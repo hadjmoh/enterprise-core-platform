@@ -8,6 +8,17 @@ import { Badge } from '../components/ui/Badge';
 import { getReportHistory, type ReportRecord, exportToCSV, exportToJSON, clearReportHistory, deleteReport } from '../services/exportService';
 import { getSchedules, saveSchedule, deleteSchedule, type ScheduledReport, createMockSchedule } from '../services/schedulingService';
 
+const DetailField = ({ label, value }: { label: string; value: string | React.ReactNode }) => (
+    <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
+        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{label}</label>
+        {typeof value === 'string' ? (
+            <p className="text-sm font-semibold mt-1 text-white">{value}</p>
+        ) : (
+            value
+        )}
+    </div>
+);
+
 export function ReportingPage() {
     const [reports, setReports] = useState<ReportRecord[]>(() => getReportHistory());
     const [schedules, setSchedules] = useState<ScheduledReport[]>(() => {
@@ -366,36 +377,20 @@ export function ReportingPage() {
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
                             <div className="space-y-4">
-                                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
-                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Name</label>
-                                    <p className="text-sm font-semibold mt-1 text-white">{selectedReport.name}</p>
+                                <DetailField label="Name" value={selectedReport.name} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <DetailField label="Format" value={selectedReport.type} />
+                                    <DetailField label="Size" value={selectedReport.size} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
-                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Format</label>
-                                        <p className="text-sm font-semibold mt-1 text-white">{selectedReport.type}</p>
-                                    </div>
-                                    <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
-                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Size</label>
-                                        <p className="text-sm font-semibold mt-1 text-white">{selectedReport.size}</p>
-                                    </div>
+                                    <DetailField label="User" value={selectedReport.user || 'N/A'} />
+                                    <DetailField label="Time Range" value={selectedReport.timeRange || 'All Time'} />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
-                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">User</label>
-                                        <p className="text-sm font-semibold mt-1 text-white">{selectedReport.user || 'N/A'}</p>
-                                    </div>
-                                    <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
-                                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Time Range</label>
-                                        <p className="text-sm font-semibold mt-1 text-white">{selectedReport.timeRange || 'All Time'}</p>
-                                    </div>
-                                </div>
-                                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800">
-                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Generation Query (SPL)</label>
+                                <DetailField label="Generation Query (SPL)" value={
                                     <div className="mt-2 p-3 bg-black/50 rounded-lg text-[11px] font-mono text-emerald-400 border border-emerald-500/20 leading-relaxed overflow-x-auto">
                                         {selectedReport.query || 'manual_trigger | fields *'}
                                     </div>
-                                </div>
+                                } />
                             </div>
 
                             <div className="pt-6 border-t border-slate-800">
