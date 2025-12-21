@@ -40,11 +40,11 @@ export function AlertSidebar({ isOpen, onClose }: AlertSidebarProps) {
         <>
             {/* Backdrop */}
             {isOpen && (
-                <div
-                    className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-40 transition-opacity duration-300"
+                <button
+                    className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-40 transition-opacity duration-300 w-full h-full border-none outline-none cursor-default"
                     onClick={onClose}
-                    role="presentation"
-                    aria-hidden="true"
+                    aria-label="Close Alert Sidebar"
+                    tabIndex={-1}
                 />
             )}
 
@@ -131,18 +131,10 @@ export function AlertSidebar({ isOpen, onClose }: AlertSidebarProps) {
                             </div>
                         ) : (
                             filteredAlerts.map((alert: Alert) => (
-                                <div
+                                <button
                                     key={alert.id}
-                                    className={`group relative p-4 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-slate-900 cursor-pointer ${alert.isRead ? 'bg-slate-900/30 border-slate-800/50' : 'bg-slate-800/40 border-slate-700 shadow-lg shadow-black/20'}`}
+                                    className={`w-full text-left group relative p-4 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 focus:ring-offset-slate-900 ${alert.isRead ? 'bg-slate-900/30 border-slate-800/50' : 'bg-slate-800/40 border-slate-700 shadow-lg shadow-black/20'}`}
                                     onClick={() => markAsRead(alert.id)}
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            markAsRead(alert.id);
-                                        }
-                                    }}
                                     aria-label={`Mark alert ${alert.title} as read`}
                                 >
                                     <div className="flex items-start gap-3">
@@ -187,7 +179,7 @@ export function AlertSidebar({ isOpen, onClose }: AlertSidebarProps) {
                                     >
                                         <X className="h-3 w-3" />
                                     </button>
-                                </div>
+                                </button>
                             ))
                         )}
                     </div>

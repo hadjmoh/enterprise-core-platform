@@ -219,19 +219,11 @@ export function ReportingPage() {
                     {activeTab === 'history' ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredReports.map((report) => (
-                                <Card
+                                <button
                                     key={report.id}
                                     onClick={() => setSelectedReport(report)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            setSelectedReport(report);
-                                        }
-                                    }}
-                                    role="button"
-                                    tabIndex={0}
                                     aria-label={`View details for report: ${report.name}`}
-                                    className={`p-4 bg-slate-900/40 border-slate-800/50 hover:border-brand-500/30 transition-all group relative overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/50 ${selectedReport?.id === report.id ? 'ring-1 ring-brand-500/50 bg-brand-500/5' : ''} ${selectedIds.has(report.id) ? 'border-brand-500/50 bg-brand-500/5' : ''}`}
+                                    className={`w-full text-left p-4 bg-slate-900/40 border border-slate-800/50 rounded-xl hover:border-brand-500/30 transition-all group relative overflow-hidden cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/50 ${selectedReport?.id === report.id ? 'ring-1 ring-brand-500/50 bg-brand-500/5' : ''} ${selectedIds.has(report.id) ? 'border-brand-500/50 bg-brand-500/5' : ''}`}
                                 >
                                     <div className="absolute top-2 left-2 z-20">
                                         <input
@@ -302,7 +294,7 @@ export function ReportingPage() {
                                             </Button>
                                         </div>
                                     </div>
-                                </Card>
+                                </button>
                             ))}
                         </div>
                     ) : (

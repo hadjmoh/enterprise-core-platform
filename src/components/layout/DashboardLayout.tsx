@@ -55,11 +55,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
             {/* Mobile Overlay */}
             {isMobile && sidebarOpen && (
-                <div
-                    className="fixed inset-0 z-30 bg-slate-950/80 backdrop-blur-sm"
+                <button
+                    className="fixed inset-0 z-30 bg-slate-950/80 backdrop-blur-sm w-full h-full border-none outline-none cursor-default"
                     onClick={() => setSidebarOpen(false)}
-                    role="presentation"
-                    aria-hidden="true"
+                    aria-label="Close Mobile Sidebar Overlay"
+                    tabIndex={-1}
                 />
             )}
         </div>

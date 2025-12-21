@@ -134,20 +134,12 @@ export const IncidentReviewPage: React.FC = () => {
                         </div>
                     ) : (
                         filteredIncidents.map(incident => (
-                            <div
+                            <button
                                 key={incident.id}
                                 onClick={() => setSelectedIncident(incident)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        setSelectedIncident(incident);
-                                    }
-                                }}
-                                role="button"
-                                tabIndex={0}
                                 aria-label={`Select incident ${incident.id}: ${incident.title}`}
                                 className={cn(
-                                    "p-4 border-b border-slate-800 cursor-pointer transition-colors hover:bg-slate-800/50 relative group focus:outline-none focus:bg-slate-800 focus:ring-inset focus:ring-2 focus:ring-brand-500",
+                                    "w-full text-left p-4 border-b border-slate-800 cursor-pointer transition-colors hover:bg-slate-800/50 relative group focus:outline-none focus:bg-slate-800 focus:ring-inset focus:ring-2 focus:ring-brand-500",
                                     selectedIncident?.id === incident.id ? "bg-brand-500/10 border-l-4 border-l-brand-500" : "border-l-4 border-l-transparent"
                                 )}
                             >
@@ -176,7 +168,7 @@ export const IncidentReviewPage: React.FC = () => {
                                     <span className="text-[10px] text-slate-500">{new Date(incident.createdAt).toLocaleDateString()}</span>
                                 </div>
                                 <ChevronRight className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
+                            </button>
                         ))
                     )}
                 </div>

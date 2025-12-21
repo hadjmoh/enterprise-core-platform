@@ -53,11 +53,11 @@ export const DrillDownMenu: React.FC<DrillDownMenuProps> = ({ x, y, filters, onA
 
     return (
         <>
-            <div
-                className="fixed inset-0 z-40 bg-transparent"
+            <button
+                className="fixed inset-0 z-40 bg-transparent w-full h-full border-none outline-none cursor-default"
                 onClick={onClose}
-                role="presentation"
-                aria-hidden="true"
+                aria-label="Close Analysis Menu"
+                tabIndex={-1}
             />
             <div
                 style={style}
