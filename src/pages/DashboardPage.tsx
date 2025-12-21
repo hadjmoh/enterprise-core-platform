@@ -27,11 +27,12 @@ import { ProcessTable } from '../components/monitor/ProcessTable';
 import { useDashboard } from '../hooks/useDashboard';
 import { DashboardGrid } from '../components/dashboard/DashboardGrid';
 import { useUI } from '../hooks/useUI';
+import { secureRandom } from '../utils/crypto';
 
 const INITIAL_DATA = Array.from({ length: 20 }, (_, i) => ({
     time: `${10 + Math.floor(i / 2)}:${(i % 2) * 30}`.padStart(5, '0'),
-    cpu: 40 + Math.random() * 20,
-    memory: 60 + Math.random() * 15,
+    cpu: 40 + secureRandom() * 20,
+    memory: 60 + secureRandom() * 15,
 }));
 
 export function DashboardPage() {
@@ -54,8 +55,8 @@ export function DashboardPage() {
                 }
                 const newPoint = {
                     time: `${newHours}:${newMinutes.toString().padStart(2, '0')}`,
-                    cpu: 30 + Math.random() * 40,
-                    memory: 50 + Math.random() * 30,
+                    cpu: 30 + secureRandom() * 40,
+                    memory: 50 + secureRandom() * 30,
                 };
                 return [...prev.slice(1), newPoint];
             });
@@ -73,10 +74,10 @@ export function DashboardPage() {
     useEffect(() => {
         const interval = setInterval(() => {
             setMetrics({
-                cpuTemp: 45 + Math.random() * 10,
-                fanSpeed: 1200 + Math.random() * 100,
-                networkIn: (25 + Math.random() * 15).toFixed(1),
-                networkOut: (12 + Math.random() * 5).toFixed(1)
+                cpuTemp: 45 + secureRandom() * 10,
+                fanSpeed: 1200 + secureRandom() * 100,
+                networkIn: (25 + secureRandom() * 15).toFixed(1),
+                networkOut: (12 + secureRandom() * 5).toFixed(1)
             });
         }, 5000);
         return () => clearInterval(interval);

@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import { correlationService } from './correlationService';
+import { secureRandom, secureRandomInt } from '../utils/crypto';
 
 export interface LogEvent {
     id: string;
@@ -41,24 +42,24 @@ class IngestionService {
         const sources = ['firewall-01', 'auth-server', 'web-gateway', 'endpoint-pc-04'];
         const actions = ['login_success', 'login_failed', 'file_access', 'connection_allow', 'connection_deny'];
 
-        const source = sources[Math.floor(Math.random() * sources.length)];
-        const action = actions[Math.floor(Math.random() * actions.length)];
+        const source = sources[secureRandomInt(0, sources.length - 1)];
+        const action = actions[secureRandomInt(0, actions.length - 1)];
 
         // Occasional "Attack" patterns
         let message = `Action ${action} on ${source}`;
         let extra: any = {};
 
-        if (Math.random() < 0.1) {
+        if (secureRandom() < 0.1) {
             // Simulate Brute Force (burst handled by interval? No, just random events for now)
             // To properly text brute force, we might need a burst generator.
             // But for random background noise:
-            if (Math.random() < 0.3) {
+            if (secureRandom() < 0.3) {
                 message = 'sudo: session opened for root';
             }
         }
 
-        const ip = '10.0.0.' + Math.floor(Math.random() * 255);
-        const user = Math.random() > 0.5 ? 'aanalyst' : 'unknown';
+        const ip = '10.0.0.' + secureRandomInt(0, 255);
+        const user = secureRandom() > 0.5 ? 'aanalyst' : 'unknown';
 
         return {
             id: uuidv4(),
