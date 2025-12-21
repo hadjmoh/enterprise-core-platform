@@ -9,6 +9,7 @@ import (
 	"enterprise-core/backend/internal/correlation"
 	"enterprise-core/backend/internal/detection"
 	"enterprise-core/backend/internal/enrichment"
+	"enterprise-core/backend/internal/compliance"
 	internalGrpc "enterprise-core/backend/internal/grpc"
 	"enterprise-core/backend/internal/ha"
 	"enterprise-core/backend/internal/industrial"
@@ -18,6 +19,7 @@ import (
 	"enterprise-core/backend/internal/network"
 	"enterprise-core/backend/internal/pipeline"
 	"enterprise-core/backend/internal/query"
+	"enterprise-core/backend/internal/security"
 	"enterprise-core/backend/internal/storage"
 	"enterprise-core/backend/internal/tenant"
 	"enterprise-core/backend/internal/writer"
@@ -49,9 +51,36 @@ func main() {
 	}
 
 	tenantMgr := tenant.NewManager(logg)
-	enrichmentPipe := enrichment.NewPipeline(logg)
-	correlationEngine := correlation.NewEngine(5*time.Minute, logg)
+	idResolver := auth.NewMockIdentityResolver()
+	enrichmentPipe := enrichment.NewPipeline(logg, idResolver)
+	
+	// Initialize Risk Engine for SIEM
+	riskEngine := security.NewRiskEngine(logg)
+	riskDecay := security.NewRiskDecayService(riskEngine, 1*time.Hour, 0.5, logg)
+	go riskDecay.Run(context.Background())
+
+	// Initialize Compliance & Privacy Policies
+	policyRegistry := compliance.NewPolicyRegistry(logg)
+
+	// Initialize UEBA Engine
+	uebaEngine := security.NewUEBAEngine(logg)
+
+	// Initialize SOAR Orchestrator
+	soarOrch := security.NewOrchestrator(auditor, logg)
+	soarOrch.RegisterAction(&security.BlockIPAction{Logger: logg})
+	soarOrch.RegisterAction(&security.DisableUserAction{Logger: logg})
+
+	// Initialize Hunting Manager
+	huntingMgr := security.NewHuntingManager()
+
+	// Audit Logger needed for Correlation and Dispatcher
+	auditor := audit.NewLogger("./data/audit.log", logg)
+	
+	correlationEngine := correlation.NewEngine(5*time.Minute, logg, auditor, riskEngine)
 	detectionEngine := detection.NewEngine(logg)
+	
+	// Initialize MITRE Manager
+	mitreMgr := security.NewMitreManager(detectionEngine, correlationEngine)
 	
 	// Create Storage Engine (Session 1)
 	storageEngine := storage.NewFileStorageEngine("./data/storage", logg)
@@ -61,7 +90,7 @@ func main() {
 	}
 	
 	// Create Search Dispatcher (Phase 4)
-	dispatcher := query.NewDispatcher(storageEngine)
+	dispatcher := query.NewDispatcher(storageEngine, auditor, policyRegistry, logg)
 
 	backpressure := buffer.NewBackpressureController(10000, 0.8, logg)
 
@@ -75,6 +104,9 @@ func main() {
 		storageEngine,
 		backpressure,
 		tenantMgr,
+		uebaEngine,
+		riskEngine,
+		soarOrch,
 		logg,
 	)
 
@@ -111,7 +143,8 @@ func main() {
 	}
 
 	// 4. Setup HTTP Router
-	mux := api.NewRouter(ingestPipeline, dispatcher, logg)
+	authSvc := auth.NewMockProvider()
+	mux := api.NewRouter(ingestPipeline, dispatcher, authSvc, riskEngine, uebaEngine, soarOrch, policyRegistry, huntingMgr, mitreMgr, logg)
 	
 	// Add Prometheus metrics endpoint
 	mux.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)

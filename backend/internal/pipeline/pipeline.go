@@ -8,6 +8,7 @@ import (
 	"enterprise-core/backend/internal/enrichment"
 	"enterprise-core/backend/internal/storage"
 	"enterprise-core/backend/internal/tenant"
+	"enterprise-core/backend/internal/security"
 	"enterprise-core/backend/pkg/logger"
 	"context"
 	"errors"
@@ -29,6 +30,9 @@ type IngestionPipeline struct {
 	storage        storage.StorageEngine
 	backpressure   *buffer.BackpressureController
 	tenantManager *tenant.Manager
+	ueba           *security.UEBAEngine
+	risk           *security.RiskEngine
+	soar           *security.Orchestrator
 	logger         *logger.Logger
 }
 
@@ -41,6 +45,9 @@ func NewIngestionPipeline(
 	store storage.StorageEngine,
 	backpressure *buffer.BackpressureController,
 	tenantManager *tenant.Manager,
+	ueba *security.UEBAEngine,
+	risk *security.RiskEngine,
+	soar *security.Orchestrator,
 	logger *logger.Logger,
 ) *IngestionPipeline {
 	return &IngestionPipeline{
@@ -52,6 +59,9 @@ func NewIngestionPipeline(
 		storage:        store,
 		backpressure:   backpressure,
 		tenantManager: tenantManager,
+		ueba:           ueba,
+		risk:           risk,
+		soar:           soar,
 		logger:         logger,
 	}
 }
@@ -87,6 +97,13 @@ func (p *IngestionPipeline) Process(event buffer.Event) error {
 			Source:      event.Source,
 			Timestamp:   time.Now(),
 		})
+
+		// SOAR: Auto-stage Block IP for Critical correlations
+		if corr.Severity == "critical" && p.soar != nil {
+			if srcIP, ok := event.Data["src_ip"].(string); ok {
+				p.soar.StageAction("block_ip", srcIP, "critical", map[string]interface{}{"ip": srcIP})
+			}
+		}
 	}
 
 	// 3. Detection
@@ -102,6 +119,43 @@ func (p *IngestionPipeline) Process(event buffer.Event) error {
 			Source:      event.Source,
 			Timestamp:   time.Now(),
 		})
+	}
+
+	// 3.1 UEBA Anomaly Detection
+	if p.ueba != nil {
+		anomalies := p.ueba.Process(event)
+		for _, anomaly := range anomalies {
+			p.logger.Info("UEBA Anomaly detected", "type", anomaly.Type, "entity", anomaly.EntityID)
+			// Route to alerting
+			p.alerting.SendAlert(&alerting.Alert{
+				ID:          "UEBA-" + anomaly.Type,
+				Title:       "UEBA: " + anomaly.Type,
+				Description: anomaly.Description,
+				Severity:    anomaly.Severity,
+				Source:      event.Source,
+				Timestamp:   time.Now(),
+			})
+
+			// Increment Risk
+			if p.risk != nil {
+				score := 20 // Default UEBA anomaly weight
+				if anomaly.Severity == "high" {
+					score = 40
+				}
+				p.risk.IncrementRisk(anomaly.EntityID, score)
+			}
+
+			// SOAR: Auto-stage for High severity UEBA anomalies (e.g. Impossible Travel)
+			if anomaly.Severity == "high" && p.soar != nil {
+				action := "block_ip"
+				params := map[string]interface{}{"ip": anomaly.EntityID} // EntityID might be IP
+				if !strings.Contains(anomaly.EntityID, ".") {
+					action = "disable_user"
+					params = map[string]interface{}{"user": anomaly.EntityID}
+				}
+				p.soar.StageAction(action, anomaly.EntityID, "high", params)
+			}
+		}
 	}
 
 	// 4. Persistence to Storage Engine

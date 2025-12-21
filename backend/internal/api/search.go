@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"enterprise-core/backend/internal/auth"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -38,6 +40,21 @@ func (rt *Router) handleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract Role from Token
+	authHeader := r.Header.Get("Authorization")
+	token := ""
+	if strings.HasPrefix(authHeader, "Splunk ") {
+		token = strings.TrimPrefix(authHeader, "Splunk ")
+	}
+
+	role := "guest"
+	if token != "" {
+		claims, err := rt.auth.ValidateToken(token)
+		if err == nil && claims.Role != "" {
+			role = claims.Role
+		}
+	}
+
 	// Set headers for SSE
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -51,9 +68,9 @@ func (rt *Router) handleSearch(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 
 	// Start the streaming execution
-	results, meta, errs, err := rt.dispatcher.ExecuteStream(ctx, query)
+	results, meta, errs, err := rt.dispatcher.ExecuteStream(ctx, query, role, nil)
 	if err != nil {
-		rt.sendSSE(w, "error", SearchError{Code: "COMPILATION_ERROR", Message: err.Error(), Fatal: true})
+		rt.sendSSE(w, "error", SearchError{Code: "AUTH_OR_COMPILATION_ERROR", Message: err.Error(), Fatal: true})
 		return
 	}
 

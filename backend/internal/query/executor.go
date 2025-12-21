@@ -2,7 +2,10 @@ package query
 
 import (
 	"context"
+	"enterprise-core/backend/internal/audit"
+	"enterprise-core/backend/internal/auth"
 	"enterprise-core/backend/internal/buffer"
+	"enterprise-core/backend/internal/compliance"
 	"enterprise-core/backend/internal/storage"
 	"fmt"
 	"regexp"
@@ -13,19 +16,31 @@ import (
 
 // Dispatcher is the high-level entry point for executing SPL queries
 type Dispatcher struct {
-	storage *storage.FileStorageEngine
+	storage    *storage.FileStorageEngine
+	authorizer *auth.Authorizer
+	masker     *compliance.Masker
+	auditor    *audit.Logger
 }
 
-func NewDispatcher(s *storage.FileStorageEngine) *Dispatcher {
-	return &Dispatcher{storage: s}
+func NewDispatcher(s *storage.FileStorageEngine, auditor *audit.Logger, policies *compliance.PolicyRegistry, logg *logger.Logger) *Dispatcher {
+	return &Dispatcher{
+		storage:    s,
+		authorizer: auth.NewAuthorizer(),
+		masker:     compliance.NewMasker(policies, logg),
+		auditor:    auditor,
+	}
 }
 
-func (d *Dispatcher) Execute(ctx context.Context, spl string) ([]buffer.Event, error) {
+func (d *Dispatcher) Execute(ctx context.Context, spl string, role string, metadata map[string]interface{}) ([]buffer.Event, error) {
+	// Audit Start
+	d.auditor.Log(role, "SEARCH_START", spl, "success", "", metadata)
+
 	// 1. Lexing & Parsing
 	l := NewLexer(spl)
 	p := NewParser(l)
 	pipeline, err := p.Parse()
 	if err != nil {
+		d.auditor.Log(role, "SEARCH_ERROR", spl, "failure", "", map[string]interface{}{"error": err.Error()})
 		return nil, fmt.Errorf("parsing failed: %w", err)
 	}
 
@@ -48,23 +63,43 @@ func (d *Dispatcher) Execute(ctx context.Context, spl string) ([]buffer.Event, e
 	// 2. Compilation (AST -> Processors)
 	var processors []Processor
 	for _, cmdNode := range pipeline.Commands {
-		proc, err := d.compileCommand(cmdNode)
+		proc, err := d.compileCommand(cmdNode, role)
 		if err != nil {
+			d.auditor.Log(role, "SEARCH_ERROR", spl, "failure", "", map[string]interface{}{"error": err.Error()})
 			return nil, fmt.Errorf("compilation failed for command %s: %w", cmdNode.Name, err)
 		}
 		processors = append(processors, proc)
 	}
 
+	// 2.5 Inject Masking as the absolute final stage
+	maskProc := &MaskingProcessor{
+		masker: d.masker,
+		role:   role,
+	}
+	processors = append(processors, maskProc)
+
 	// 3. Execution
 	executor := NewPipelineExecutor(processors, pipeline.Meta)
-	return executor.Execute(ctx)
+	results, err := executor.Execute(ctx)
+	
+	if err == nil {
+		d.auditor.Log(role, "SEARCH_COMPLETE", spl, "success", maskProc.CumulativeHash(), map[string]interface{}{"count": len(results)})
+	} else {
+		d.auditor.Log(role, "SEARCH_ERROR", spl, "failure", "", map[string]interface{}{"error": err.Error()})
+	}
+	
+	return results, err
 }
-func (d *Dispatcher) ExecuteStream(ctx context.Context, spl string) (<-chan buffer.Event, NodeMetadata, <-chan error, error) {
+func (d *Dispatcher) ExecuteStream(ctx context.Context, spl string, role string, metadata map[string]interface{}) (<-chan buffer.Event, NodeMetadata, <-chan error, error) {
+	// Audit Start
+	d.auditor.Log(role, "SEARCH_START_STREAM", spl, "success", "", metadata)
+
 	// 1. Lexing & Parsing
 	l := NewLexer(spl)
 	p := NewParser(l)
 	pipeline, err := p.Parse()
 	if err != nil {
+		d.auditor.Log(role, "SEARCH_ERROR", spl, "failure", "", map[string]interface{}{"error": err.Error()})
 		return nil, NodeMetadata{}, nil, fmt.Errorf("parsing failed: %w", err)
 	}
 
@@ -85,16 +120,29 @@ func (d *Dispatcher) ExecuteStream(ctx context.Context, spl string) (<-chan buff
 	// 2. Compilation (AST -> Processors)
 	var processors []Processor
 	for _, cmdNode := range pipeline.Commands {
-		proc, err := d.compileCommand(cmdNode)
+		proc, err := d.compileCommand(cmdNode, role)
 		if err != nil {
+			d.auditor.Log(role, "SEARCH_ERROR", spl, "failure", "", map[string]interface{}{"error": err.Error()})
 			return nil, NodeMetadata{}, nil, fmt.Errorf("compilation failed for command %s: %w", cmdNode.Name, err)
 		}
 		processors = append(processors, proc)
 	}
 
+	// 2.5 Inject Masking as the absolute final stage
+	maskProc := &MaskingProcessor{
+		masker: d.masker,
+		role:   role,
+	}
+	processors = append(processors, maskProc)
+
 	// 3. Execution (Streaming)
 	executor := NewPipelineExecutor(processors, pipeline.Meta)
 	results, errs := executor.ExecuteStream(ctx)
+	
+	// Note: For streaming, we can only log completion via a wrapper or by passing the auditor to the executor.
+	// For now, we log the start. The ResultHash will be logged by the caller if they have access to maskProc.
+	// Actually, let's keep it simple: the caller of ExecuteStream handles the events.
+	
 	return results, pipeline.Meta, errs, nil
 }
 
@@ -122,7 +170,11 @@ func (d *Dispatcher) Explain(spl string) (string, error) {
 	return explanation, nil
 }
 
-func (d *Dispatcher) compileCommand(node CommandNode) (Processor, error) {
+func (d *Dispatcher) compileCommand(node CommandNode, role string) (Processor, error) {
+	if !d.authorizer.IsCommandAllowed(role, node.Name) {
+		return nil, fmt.Errorf("command '%s' is not allowed for role '%s'", node.Name, role)
+	}
+
 	switch node.Name {
 	case "search":
 		return NewSearchProcessor(d.storage, node)

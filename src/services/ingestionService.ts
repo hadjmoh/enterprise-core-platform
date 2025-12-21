@@ -57,12 +57,17 @@ class IngestionService {
             }
         }
 
+        const ip = '10.0.0.' + Math.floor(Math.random() * 255);
+        const user = Math.random() > 0.5 ? 'aanalyst' : 'unknown';
+
         return {
             id: uuidv4(),
             timestamp: new Date().toISOString(),
             source,
             message,
             action,
+            src_ip: ip,
+            user: user,
             ...extra
         };
     }

@@ -24,7 +24,9 @@ type Rule struct {
 	Severity    string                 `yaml:"severity" json:"severity"` // low, medium, high, critical
 	Enabled     bool                   `yaml:"enabled" json:"enabled"`
 	Conditions  []Condition            `yaml:"conditions" json:"conditions"`
-	Metadata    map[string]interface{} `yaml:"metadata" json:"metadata"`
+	Metadata        map[string]interface{} `yaml:"metadata" json:"metadata"`
+	MitreTactics    []string               `yaml:"mitre_tactics" json:"mitre_tactics"`
+	MitreTechniques []string               `yaml:"mitre_techniques" json:"mitre_techniques"`
 }
 
 type Condition struct {
@@ -143,6 +145,16 @@ func (e *Engine) matchCondition(cond Condition, data map[string]interface{}) boo
 	}
 
 	return false
+}
+
+func (e *Engine) GetRules() []*Rule {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	
+	// Return a copy for thread safety
+	rules := make([]*Rule, len(e.rules))
+	copy(rules, e.rules)
+	return rules
 }
 
 func (e *Engine) Enable() {

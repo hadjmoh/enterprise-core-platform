@@ -1,7 +1,9 @@
 package correlation
 
 import (
+	"enterprise-core/backend/internal/audit"
 	"enterprise-core/backend/internal/buffer"
+	"enterprise-core/backend/internal/security"
 	"enterprise-core/backend/pkg/logger"
 	"sync"
 	"time"
@@ -12,6 +14,8 @@ type Engine struct {
 	rules      []*Rule
 	windows    map[string]*TimeWindow
 	logger     *logger.Logger
+	auditor    *audit.Logger
+	risk       *security.RiskEngine
 	mu         sync.RWMutex
 	windowSize time.Duration
 }
@@ -22,11 +26,13 @@ type TimeWindow struct {
 	EndTime   time.Time
 }
 
-func NewEngine(windowSize time.Duration, logger *logger.Logger) *Engine {
+func NewEngine(windowSize time.Duration, logger *logger.Logger, auditor *audit.Logger, risk *security.RiskEngine) *Engine {
 	return &Engine{
 		rules:      make([]*Rule, 0),
 		windows:    make(map[string]*TimeWindow),
 		logger:     logger,
+		auditor:    auditor,
+		risk:       risk,
 		windowSize: windowSize,
 	}
 }
@@ -37,6 +43,12 @@ func (e *Engine) AddRule(rule *Rule) {
 	
 	e.rules = append(e.rules, rule)
 	e.logger.Info("Added correlation rule", "name", rule.Name)
+
+	// Audit Rule Activation
+	e.auditor.Log("system", "RULE_ACTIVATED", rule.ID, "success", "", map[string]interface{}{
+		"rule_name": rule.Name,
+		"severity":  rule.Severity,
+	})
 }
 
 func (e *Engine) ProcessEvent(event buffer.Event) []Match {
@@ -60,6 +72,28 @@ func (e *Engine) ProcessEvent(event buffer.Event) []Match {
 			}
 			matches = append(matches, match)
 			e.logger.Info("Correlation match", "rule", rule.Name, "severity", rule.Severity)
+
+			// Audit the detection match
+			e.auditor.Log("system", "DETECTION_MATCH", rule.ID, "success", "", map[string]interface{}{
+				"rule_name": rule.Name,
+				"severity":  rule.Severity,
+				"trigger":   event.Data["src_ip"],
+			})
+
+			// Increment Entity Risk
+			if e.risk != nil {
+				entityID := ""
+				if user, ok := event.Data["user"].(string); ok {
+					entityID = user
+				} else if srcIP, ok := event.Data["src_ip"].(string); ok {
+					entityID = srcIP
+				}
+
+				if entityID != "" {
+					score := e.risk.CalculateScore(rule.Severity, 1.0) // Assume 1.0 confidence for now
+					e.risk.IncrementRisk(entityID, score)
+				}
+			}
 		}
 	}
 

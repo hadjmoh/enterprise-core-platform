@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"enterprise-core/backend/internal/buffer"
+	"enterprise-core/backend/internal/encryption"
 	"enterprise-core/backend/internal/index"
 	"enterprise-core/backend/pkg/logger"
 	"fmt"
@@ -24,6 +25,7 @@ const (
 type FileStorageEngine struct {
 	manager *PartitionManager
 	logger  *logger.Logger
+	kms     *encryption.KeyManager
 	mu      sync.Mutex
 	stats   Stats
 	wals    map[string]*WAL // partition path -> WAL
@@ -74,6 +76,7 @@ func NewFileStorageEngine(basePath string, logg *logger.Logger) *FileStorageEngi
 	engine := &FileStorageEngine{
 		manager: NewPartitionManager(basePath),
 		logger:  logg,
+		kms:     encryption.NewKeyManager(),
 		stats:   Stats{Uptime: 0},
 		wals:      make(map[string]*WAL),
 		memtables:  make(map[string]*Memtable),
@@ -122,7 +125,7 @@ func (e *FileStorageEngine) Recover() error {
 			walPath := filepath.Join(shardPath, "wal.log")
 			if _, err := os.Stat(walPath); err == nil {
 				e.logger.Info("Recovering shard from WAL", "path", shardPath)
-				wal, err := OpenWAL(shardPath)
+				wal, err := OpenWAL(shardPath, e.kms)
 				if err != nil {
 					continue
 				}
@@ -191,7 +194,7 @@ func (e *FileStorageEngine) ValidateIndexes(partitionPath string) {
 
 func (e *FileStorageEngine) rebuildIndex(sstPath string) {
 	// Simple re-index: read all events and build index
-	it, err := NewSSTableIterator(sstPath)
+	it, err := NewSSTableIteratorWithEncryption(sstPath, e.kms)
 	if err != nil {
 		return
 	}
@@ -311,7 +314,7 @@ func (e *FileStorageEngine) Write(ctx context.Context, event buffer.Event) error
 	wal, ok := e.wals[shardPath]
 	if !ok {
 		var err error
-		wal, err = OpenWAL(shardPath)
+		wal, err = OpenWAL(shardPath, e.kms)
 		if err != nil {
 			return fmt.Errorf("failed to open WAL: %w", err)
 		}
@@ -387,7 +390,7 @@ func (e *FileStorageEngine) Flush(shardPath string, t time.Time) error {
 	filePath := filepath.Join(shardPath, fileName)
 
 	// 2. Write SSTable with Footer and Index
-	writer, err := NewSSTableWriter(filePath)
+	writer, err := NewSSTableWriterWithEncryption(filePath, e.kms)
 	if err != nil {
 		e.logger.Error("Failed to create SSTableWriter", err)
 		return err
@@ -572,7 +575,7 @@ func (e *FileStorageEngine) NewReader(ctx context.Context, q Query) (StorageRead
 					continue
 				}
 				
-				it, err := NewSSTableIterator(filepath.Join(shardPath, info.Filename))
+				it, err := NewSSTableIteratorWithEncryption(filepath.Join(shardPath, info.Filename), e.kms)
 				if err == nil {
 					shardReaders = append(shardReaders, it)
 				}
@@ -670,7 +673,7 @@ func (e *FileStorageEngine) Search(ctx context.Context, q Query) ([]buffer.Event
 				}
 
 				// C. Create Iterator
-				it, err := NewSSTableIterator(sstPath)
+				it, err := NewSSTableIteratorWithEncryption(sstPath, e.kms)
 				if err == nil {
 					readers = append(readers, it)
 				}

@@ -12,8 +12,9 @@
     - field: "status"
       operator: "eq"
       value: "failed"
+  mitre_tactics: ["Credential Access"]
+  mitre_techniques: ["T1110"]
   metadata:
-    mitre_attack: "T1110"
     category: "credential_access"
 
 - id: "auth-002"
@@ -31,8 +32,9 @@
     - field: "src_ip_threat_malicious"
       operator: "eq"
       value: true
+  mitre_tactics: ["Initial Access"]
+  mitre_techniques: ["T1078"]
   metadata:
-    mitre_attack: "T1078"
     category: "initial_access"
 
 - id: "net-001"
@@ -44,8 +46,9 @@
     - field: "bytes"
       operator: "gt"
       value: 10000000
+  mitre_tactics: ["Exfiltration"]
+  mitre_techniques: ["T1048"]
   metadata:
-    mitre_attack: "T1048"
     category: "exfiltration"
 
 - id: "net-002"
@@ -57,6 +60,7 @@
     - field: "dst_ip_geo_country"
       operator: "in"
       value: ["KP", "IR", "SY"]
+  mitre_tactics: ["Command and Control"]
   metadata:
     category: "command_and_control"
 
@@ -69,8 +73,9 @@
     - field: "file_threat_malicious"
       operator: "eq"
       value: true
+  mitre_tactics: ["Execution"]
+  mitre_techniques: ["T1204"]
   metadata:
-    mitre_attack: "T1204"
     category: "execution"
 
 - id: "priv-001"
@@ -85,6 +90,7 @@
     - field: "new_privilege"
       operator: "contains"
       value: "admin"
+  mitre_tactics: ["Privilege Escalation"]
+  mitre_techniques: ["T1068"]
   metadata:
-    mitre_attack: "T1068"
     category: "privilege_escalation"

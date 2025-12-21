@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
+import { incidentService } from './incidentService';
+import { identityService } from './identityService';
 
 export interface CorrelationRule {
     id: string;
@@ -27,6 +29,7 @@ export interface DetectionSignal {
     sourceIds: string[];
     riskScore: number;
     message: string;
+    entities?: string[]; // Resolved entity IDs
 }
 
 interface LogEvent {
@@ -124,6 +127,20 @@ class CorrelationEngine {
     }
 
     private triggerDetection(triggerEvent: LogEvent, rule: CorrelationRule, sourceIds: string[]) {
+        // Resolve Identities
+        const entities: string[] = [];
+        const srcIp = triggerEvent.src_ip;
+        const user = triggerEvent.user;
+
+        if (srcIp) {
+            const e = identityService.resolveIdentity(srcIp, triggerEvent.timestamp);
+            if (e) entities.push(e.id);
+        }
+        if (user && user !== 'unknown') {
+            const e = identityService.resolveIdentity(user, triggerEvent.timestamp);
+            if (e) entities.push(e.id);
+        }
+
         const signal: DetectionSignal = {
             id: uuidv4(),
             ruleId: rule.id,
@@ -132,11 +149,17 @@ class CorrelationEngine {
             timestamp: new Date().toISOString(),
             sourceIds: sourceIds,
             riskScore: rule.riskScore,
-            message: `Rule '${rule.name}' triggered by ${triggerEvent.source}`
+            message: `Rule '${rule.name}' triggered by ${triggerEvent.source}`,
+            entities: entities.length > 0 ? entities : undefined
         };
 
         this.signalHistory.unshift(signal);
         if (this.signalHistory.length > 1000) this.signalHistory.pop();
+
+        // Auto-promote to incident if severity is high or critical
+        if (signal.severity === 'high' || signal.severity === 'critical') {
+            incidentService.createIncidentFromSignal(signal);
+        }
 
         this.notifyListeners(signal);
     }

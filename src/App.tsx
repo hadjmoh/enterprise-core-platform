@@ -8,6 +8,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { UserPage } from './pages/UserPage';
 import { DataInputsPage } from './pages/DataInputsPage';
 import { SecurityDashboardPage } from './pages/SecurityDashboardPage';
+import { IncidentReviewPage } from './pages/IncidentReviewPage';
+import { EntityProfilePage } from './pages/EntityProfilePage';
 import { ThreatIntelPage } from './pages/ThreatIntelPage';
 import { SecurityRulesPage } from './pages/SecurityRulesPage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
@@ -51,6 +53,22 @@ function App() {
                   element={
                     <DashboardLayout>
                       <SecurityDashboardPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/security/incidents"
+                  element={
+                    <DashboardLayout>
+                      <IncidentReviewPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/entity/:entityId"
+                  element={
+                    <DashboardLayout>
+                      <EntityProfilePage />
                     </DashboardLayout>
                   }
                 />

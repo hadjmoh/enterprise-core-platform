@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/cipher"
 	"encoding/binary"
 	"encoding/json"
 	"enterprise-core/backend/internal/buffer"
+	"enterprise-core/backend/internal/encryption"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -15,9 +17,11 @@ import (
 
 // SSTableIterator reads events from a single SSTable file.
 type SSTableIterator struct {
-	file        *os.File
-	footer      SSTableFooter
-	compression CompressionProvider
+	file         *os.File
+	footer       SSTableFooter
+	compression  CompressionProvider
+	kms          *encryption.KeyManager
+	cipher       cipher.AEAD
 	
 	blockReader  *bufio.Scanner
 	currentBlock int
@@ -81,15 +85,62 @@ func NewSSTableIterator(path string) (*SSTableIterator, error) {
 	}, nil
 }
 
-// SeekToBlock positions the iterator at the start of a specific block.
-func (it *SSTableIterator) SeekToBlock(blockIdx int) error {
-	if blockIdx < 0 || blockIdx >= len(it.footer.BlockOffsets) {
-		return io.ErrUnexpectedEOF
+func NewSSTableIteratorWithEncryption(path string, kms *encryption.KeyManager) (*SSTableIterator, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
 	}
-	it.currentBlock = blockIdx
-	it.currentPos = it.footer.BlockOffsets[blockIdx]
-	it.blockReader = nil
-	return nil
+
+	fi, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
+
+	f.Seek(-8, io.SeekEnd)
+	var footerSize int64
+	binary.Read(f, binary.LittleEndian, &footerSize)
+
+	f.Seek(-(footerSize + 8), io.SeekEnd)
+	footerData := make([]byte, footerSize)
+	io.ReadFull(f, footerData)
+
+	var footer SSTableFooter
+	json.Unmarshal(footerData, &footer)
+
+	// Decrypt Data Key if present
+	var c cipher.AEAD
+	if len(footer.EncryptedKey) > 0 {
+		dataKey, err := kms.DecryptDataKey(footer.EncryptedKey)
+		if err != nil {
+			f.Close()
+			return nil, fmt.Errorf("failed to decrypt sstable data key: %w", err)
+		}
+		c, err = kms.NewCipher(dataKey)
+		if err != nil {
+			f.Close()
+			return nil, err
+		}
+	}
+
+	var provider CompressionProvider
+	switch footer.CompressionType {
+	case CompressionZlib:
+		provider = &ZlibProvider{}
+	default:
+		provider = &NoneProvider{}
+	}
+
+	return &SSTableIterator{
+		file:         f,
+		footer:       footer,
+		compression:  provider,
+		kms:          kms,
+		cipher:       c,
+		currentBlock: 0,
+		currentPos:   0,
+		dataEnd:      fi.Size() - (footerSize + 8),
+	}, nil
 }
 
 func (it *SSTableIterator) Next(ctx context.Context) (buffer.Event, error) {
@@ -98,50 +149,54 @@ func (it *SSTableIterator) Next(ctx context.Context) (buffer.Event, error) {
 			line := it.blockReader.Bytes()
 			var event buffer.Event
 			if err := json.Unmarshal(line, &event); err != nil {
-				continue // Skip malformed
+				continue
 			}
 			return event, nil
 		}
 
-		if it.blockReader != nil && it.blockReader.Err() != nil {
-			return buffer.Event{}, it.blockReader.Err()
-		}
-
-		// Need to read next block
 		if it.currentBlock >= len(it.footer.BlockOffsets) {
 			return buffer.Event{}, io.EOF
 		}
 
-		// Optimization: if SeekToBlock wasn't called, currentPos is already correct.
-		// If it was, SeekToBlock updated currentPos.
 		it.file.Seek(it.currentPos, io.SeekStart)
 		var blockSize int32
-		if err := binary.Read(it.file, binary.LittleEndian, &blockSize); err != nil {
-			return buffer.Event{}, err
-		}
+		binary.Read(it.file, binary.LittleEndian, &blockSize)
 
-		// Integrity check (CRC32)
 		var checksum uint32
-		if err := binary.Read(it.file, binary.LittleEndian, &checksum); err != nil {
-			return buffer.Event{}, err
-		}
+		binary.Read(it.file, binary.LittleEndian, &checksum)
 		
-		compressed := make([]byte, blockSize)
-		if _, err := io.ReadFull(it.file, compressed); err != nil {
-			return buffer.Event{}, err
-		}
+		data := make([]byte, blockSize)
+		io.ReadFull(it.file, data)
 
-		if crc32.ChecksumIEEE(compressed) != checksum {
+		if crc32.ChecksumIEEE(data) != checksum {
 			return buffer.Event{}, fmt.Errorf("block checksum mismatch")
 		}
 		
-		decompressed, err := it.compression.Decompress(compressed)
+		var decompressed []byte
+		var err error
+
+		// Decrypt if needed
+		if it.cipher != nil {
+			nonceSize := it.cipher.NonceSize()
+			if len(data) < nonceSize {
+				return buffer.Event{}, fmt.Errorf("block too short for nonce")
+			}
+			nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+			decrypted, err := it.cipher.Open(nil, nonce, ciphertext, nil)
+			if err != nil {
+				return buffer.Event{}, fmt.Errorf("block decryption failed: %w", err)
+			}
+			decompressed, err = it.compression.Decompress(decrypted)
+		} else {
+			decompressed, err = it.compression.Decompress(data)
+		}
+
 		if err != nil {
 			return buffer.Event{}, err
 		}
 
 		it.blockReader = bufio.NewScanner(bytes.NewReader(decompressed))
-		it.currentPos += 4 + int64(blockSize)
+		it.currentPos += 4 + 4 + int64(blockSize)
 		it.currentBlock++
 	}
 }

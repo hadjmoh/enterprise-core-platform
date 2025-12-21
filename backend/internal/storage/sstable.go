@@ -2,9 +2,12 @@ package storage
 
 import (
 	"bytes"
+	"crypto/cipher"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/json"
 	"enterprise-core/backend/internal/buffer"
+	"enterprise-core/backend/internal/encryption"
 	"hash/crc32"
 	"io"
 	"os"
@@ -13,7 +16,7 @@ import (
 // SSTableFooter contains metadata about an SSTable file, stored at the end of the file.
 type SSTableFooter struct {
 	MinTimestamp       string          `json:"min_timestamp"`
-	MaxTimestamp       string          `json:"max_timestamp"`
+	MaxTimestamp       string          `max_timestamp"`
 	EventCount         int64           `json:"event_count"`
 	Version            int             `json:"version"`
 	CompressionType    CompressionType `json:"compression_type"`
@@ -23,6 +26,7 @@ type SSTableFooter struct {
 	RawSize            int64           `json:"raw_size"`
 	CompressedSize     int64           `json:"compressed_size"`
 	BlockOffsets       []int64         `json:"block_offsets"`
+	EncryptedKey       []byte          `json:"encrypted_key,omitempty"` // Data key protected by Master Key
 }
 
 // SSTableWriter writes sorted events to an immutable file.
@@ -32,28 +36,41 @@ type SSTableWriter struct {
 	maxTimestamp string
 	count        int64
 	blockBuffer  *bytes.Buffer
-	compression        CompressionProvider
-	maxBlockSize       int
-	blockOffsets       []int64
-	totalRawSize       int64
+	compression         CompressionProvider
+	kms                 *encryption.KeyManager
+	cipher              cipher.AEAD
+	encryptedDataKey    []byte
+	maxBlockSize        int
+	blockOffsets        []int64
+	totalRawSize        int64
 	totalCompressedSize int64
 }
 
-func NewSSTableWriter(path string) (*SSTableWriter, error) {
-	return NewSSTableWriterWithCompression(path, &ZlibProvider{})
-}
-
-func NewSSTableWriterWithCompression(path string, provider CompressionProvider) (*SSTableWriter, error) {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+func NewSSTableWriterWithEncryption(path string, kms *encryption.KeyManager) (*SSTableWriter, error) {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		return nil, err
 	}
+
+	dataKey, encryptedKey, err := kms.GenerateDataKey()
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := kms.NewCipher(dataKey)
+	if err != nil {
+		return nil, err
+	}
+
 	return &SSTableWriter{
-		file:          f,
-		blockBuffer:   new(bytes.Buffer),
-		compression:   provider,
-		maxBlockSize:  64 * 1024, // 64KB
-		blockOffsets:  make([]int64, 0),
+		file:             f,
+		blockBuffer:      new(bytes.Buffer),
+		compression:      &ZlibProvider{},
+		kms:              kms,
+		cipher:           c,
+		encryptedDataKey: encryptedKey,
+		maxBlockSize:     64 * 1024,
+		blockOffsets:     make([]int64, 0),
 	}, nil
 }
 
@@ -89,29 +106,44 @@ func (w *SSTableWriter) flushBlock() error {
 		return nil
 	}
 
-	// Record start offset of this block
+	// Record start offset
 	offset, _ := w.file.Seek(0, io.SeekCurrent)
 	w.blockOffsets = append(w.blockOffsets, offset)
 
+	// 1. Compress
 	compressed, err := w.compression.Compress(w.blockBuffer.Bytes())
 	if err != nil {
 		return err
 	}
-	w.totalCompressedSize += int64(len(compressed) + 8) // +4 for size, +4 for crc
+
+	// 2. Encrypt if cipher is available
+	var finalBlocks []byte
+	if w.cipher != nil {
+		nonce := make([]byte, w.cipher.NonceSize())
+		if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+			return err
+		}
+		encrypted := w.cipher.Seal(nil, nonce, compressed, nil)
+		finalBlocks = append(nonce, encrypted...)
+	} else {
+		finalBlocks = compressed
+	}
+	
+	w.totalCompressedSize += int64(len(finalBlocks) + 8)
 
 	// Write block size
-	if err := binary.Write(w.file, binary.LittleEndian, int32(len(compressed))); err != nil {
+	if err := binary.Write(w.file, binary.LittleEndian, int32(len(finalBlocks))); err != nil {
 		return err
 	}
 	
-	// Write CRC32 checksum
-	checksum := crc32.ChecksumIEEE(compressed)
+	// Write CRC
+	checksum := crc32.ChecksumIEEE(finalBlocks)
 	if err := binary.Write(w.file, binary.LittleEndian, checksum); err != nil {
 		return err
 	}
 
-	// Write compressed data
-	if _, err := w.file.Write(compressed); err != nil {
+	// Write data
+	if _, err := w.file.Write(finalBlocks); err != nil {
 		return err
 	}
 
@@ -124,7 +156,6 @@ func (w *SSTableWriter) Close() error {
 		return err
 	}
 
-	// Write footer before closing
 	footer := SSTableFooter{
 		MinTimestamp:       w.minTimestamp,
 		MaxTimestamp:       w.maxTimestamp,
@@ -137,6 +168,7 @@ func (w *SSTableWriter) Close() error {
 		RawSize:            w.totalRawSize,
 		CompressedSize:     w.totalCompressedSize,
 		BlockOffsets:       w.blockOffsets,
+		EncryptedKey:       w.encryptedDataKey,
 	}
 	
 	footerData, _ := json.Marshal(footer)

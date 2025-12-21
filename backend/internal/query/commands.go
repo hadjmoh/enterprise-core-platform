@@ -3,6 +3,7 @@ package query
 import (
 	"context"
 	"enterprise-core/backend/internal/buffer"
+	"enterprise-core/backend/internal/compliance"
 	"enterprise-core/backend/internal/storage"
 	"fmt"
 	"regexp"
@@ -809,4 +810,47 @@ func ParseSpan(span string) (time.Duration, error) {
 		return 0, fmt.Errorf("span must be positive: %s", span)
 	}
 	return d, err
+}
+
+// MaskingProcessor applies role-based data redaction
+type MaskingProcessor struct {
+	masker      *compliance.Masker
+	role        string
+	metrics     CommandMetrics
+	resultHash  [32]byte
+	hasHash     bool
+}
+
+func (p *MaskingProcessor) Init(ctx context.Context) error { return nil }
+func (p *MaskingProcessor) Close() error                 { return nil }
+func (p *MaskingProcessor) Metrics() CommandMetrics     { return p.metrics }
+
+func (p *MaskingProcessor) Process(ctx context.Context, in <-chan buffer.Event, out chan<- buffer.Event) error {
+	for ev := range in {
+		p.metrics.EventsIn++
+		ev.Data = p.masker.Mask(ev.Data, p.role)
+
+		// Update cumulative hash for chain of custody
+		data, _ := json.Marshal(ev.Data)
+		if !p.hasHash {
+			p.resultHash = sha256.Sum256(data)
+			p.hasHash = true
+		} else {
+			h := sha256.New()
+			h.Write(p.resultHash[:])
+			h.Write(data)
+			copy(p.resultHash[:], h.Sum(nil))
+		}
+
+		out <- ev
+		p.metrics.EventsOut++
+	}
+	return nil
+}
+
+func (p *MaskingProcessor) CumulativeHash() string {
+	if !p.hasHash {
+		return ""
+	}
+	return hex.EncodeToString(p.resultHash[:])
 }

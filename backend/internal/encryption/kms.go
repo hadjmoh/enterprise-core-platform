@@ -1,91 +1,90 @@
 package encryption
 
 import (
-	"encoding/base64"
-	"enterprise-core/backend/pkg/logger"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"fmt"
-	"os"
-	"sync"
+	"io"
 )
 
-// KMS provides key management capabilities
-type KMS struct {
-	keys   map[string][]byte
-	logger *logger.Logger
-	mu     sync.RWMutex
+// KeyManager handles Master Keys and Data Keys
+type KeyManager struct {
+	masterKey []byte // Mock master key
 }
 
-func NewKMS(logger *logger.Logger) *KMS {
-	return &KMS{
-		keys:   make(map[string][]byte),
-		logger: logger,
+func NewKeyManager() *KeyManager {
+	return &KeyManager{
+		masterKey: []byte("very-secret-master-key-32-chars-!"), // 32 bytes for AES-256
 	}
 }
 
-// GetKey retrieves a key by ID
-func (k *KMS) GetKey(keyID string) ([]byte, error) {
-	k.mu.RLock()
-	defer k.mu.RUnlock()
-
-	key, ok := k.keys[keyID]
-	if !ok {
-		return nil, fmt.Errorf("key not found: %s", keyID)
+// GenerateDataKey creates a new 32-byte data key and returns it along with its encrypted version
+func (k *KeyManager) GenerateDataKey() ([]byte, []byte, error) {
+	dataKey := make([]byte, 32)
+	if _, err := io.ReadFull(rand.Reader, dataKey); err != nil {
+		return nil, nil, err
 	}
 
-	return key, nil
+	encryptedKey, err := k.encrypt(dataKey, k.masterKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return dataKey, encryptedKey, nil
 }
 
-// StoreKey stores a key with the given ID
-func (k *KMS) StoreKey(keyID string, key []byte) error {
-	k.mu.Lock()
-	defer k.mu.Unlock()
-
-	k.keys[keyID] = key
-	k.logger.Info("Key stored", "keyID", keyID)
-	return nil
+// DecryptDataKey removes the master key protection from a data key
+func (k *KeyManager) DecryptDataKey(encryptedKey []byte) ([]byte, error) {
+	return k.decrypt(encryptedKey, k.masterKey)
 }
 
-// GenerateKey creates a new key and stores it
-func (k *KMS) GenerateKey(keyID string) ([]byte, error) {
-	key, err := GenerateKey()
+// Low-level helper for AES-GCM encryption
+func (k *KeyManager) encrypt(plaintext, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := k.StoreKey(keyID, key); err != nil {
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
 		return nil, err
 	}
 
-	return key, nil
-}
-
-// RotateKey generates a new key for the given ID
-func (k *KMS) RotateKey(keyID string) ([]byte, error) {
-	k.logger.Info("Rotating key", "keyID", keyID)
-	return k.GenerateKey(keyID)
-}
-
-// LoadFromEnv loads keys from environment variables
-func (k *KMS) LoadFromEnv() error {
-	// Load master key from environment
-	if masterKeyB64 := os.Getenv("MASTER_ENCRYPTION_KEY"); masterKeyB64 != "" {
-		key, err := base64.StdEncoding.DecodeString(masterKeyB64)
-		if err != nil {
-			return fmt.Errorf("failed to decode master key: %w", err)
-		}
-		
-		if err := k.StoreKey("master", key); err != nil {
-			return err
-		}
-		
-		k.logger.Info("Master key loaded from environment")
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return gcm.Seal(nonce, nonce, plaintext, nil), nil
 }
 
-// TODO: Integrate with external KMS providers
-// - AWS KMS
-// - HashiCorp Vault
-// - Azure Key Vault
-// - Google Cloud KMS
+// Low-level helper for AES-GCM decryption
+func (k *KeyManager) decrypt(ciphertext, key []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+
+	nonce, encryptedData := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	return gcm.Open(nil, nonce, encryptedData, nil)
+}
+
+// Encrypter returns a GCM cipher interface for a data key
+func (k *KeyManager) NewCipher(dataKey []byte) (cipher.AEAD, error) {
+	block, err := aes.NewCipher(dataKey)
+	if err != nil {
+		return nil, err
+	}
+	return cipher.NewGCM(block)
+}

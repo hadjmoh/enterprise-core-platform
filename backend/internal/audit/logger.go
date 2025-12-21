@@ -16,12 +16,13 @@ type Logger struct {
 }
 
 type Entry struct {
-	Timestamp time.Time              `json:"timestamp"`
-	Actor     string                 `json:"actor"`
-	Action    string                 `json:"action"`
-	Resource  string                 `json:"resource"`
-	Status    string                 `json:"status"` // success, failure
-	Details   map[string]interface{} `json:"details,omitempty"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Actor      string                 `json:"actor"`
+	Action     string                 `json:"action"`
+	Resource   string                 `json:"resource"`
+	Status     string                 `json:"status"`      // success, failure
+	ResultHash string                 `json:"result_hash,omitempty"` // Cumulative SHA-256 of results
+	Details    map[string]interface{} `json:"details,omitempty"`
 }
 
 func NewLogger(filePath string, logger *logger.Logger) *Logger {
@@ -31,17 +32,18 @@ func NewLogger(filePath string, logger *logger.Logger) *Logger {
 	}
 }
 
-func (a *Logger) Log(actor, action, resource, status string, details map[string]interface{}) error {
+func (a *Logger) Log(actor, action, resource, status string, resultHash string, details map[string]interface{}) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
 	entry := Entry{
-		Timestamp: time.Now(),
-		Actor:     actor,
-		Action:    action,
-		Resource:  resource,
-		Status:    status,
-		Details:   details,
+		Timestamp:  time.Now(),
+		Actor:      actor,
+		Action:     action,
+		Resource:   resource,
+		Status:     status,
+		ResultHash: resultHash,
+		Details:    details,
 	}
 
 	data, err := json.Marshal(entry)
@@ -49,7 +51,8 @@ func (a *Logger) Log(actor, action, resource, status string, details map[string]
 		return err
 	}
 
-	f, err := os.OpenFile(a.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	// Use O_SYNC to ensure log durability
+	f, err := os.OpenFile(a.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY|os.O_SYNC, 0600)
 	if err != nil {
 		return err
 	}
@@ -59,6 +62,6 @@ func (a *Logger) Log(actor, action, resource, status string, details map[string]
 		return err
 	}
 
-	a.logger.Info("Audit log entry created", "action", action, "actor", actor)
+	a.logger.Info("Audit log entry created", "action", action, "actor", actor, "status", status)
 	return nil
 }

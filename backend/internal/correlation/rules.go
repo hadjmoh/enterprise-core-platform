@@ -12,8 +12,10 @@ type Rule struct {
 	Description string
 	Severity    string // low, medium, high, critical
 	Conditions  []Condition
-	Threshold   int           // Minimum events to trigger
-	TimeWindow  string        // e.g., "5m", "1h"
+	Threshold       int      // Minimum events to trigger
+	TimeWindow      string   // e.g., "5m", "1h"
+	MitreTactics    []string // MITRE Tactics (e.g., "Credential Access")
+	MitreTechniques []string // MITRE Techniques (e.g., "T1110")
 }
 
 type Condition struct {
@@ -90,8 +92,10 @@ var DefaultRules = []*Rule{
 			{Field: "event_type", Operator: "equals", Value: "authentication"},
 			{Field: "status", Operator: "equals", Value: "failed"},
 		},
-		Threshold: 5,
-		TimeWindow: "5m",
+		Threshold:       5,
+		TimeWindow:      "5m",
+		MitreTactics:    []string{"Credential Access"},
+		MitreTechniques: []string{"T1110"},
 	},
 	{
 		ID:          "CORR-002",
@@ -101,8 +105,10 @@ var DefaultRules = []*Rule{
 		Conditions: []Condition{
 			{Field: "event_type", Operator: "equals", Value: "network"},
 		},
-		Threshold: 10,
-		TimeWindow: "1m",
+		Threshold:       10,
+		TimeWindow:      "1m",
+		MitreTactics:    []string{"Discovery"},
+		MitreTechniques: []string{"T1046"},
 	},
 	{
 		ID:          "CORR-003",
@@ -113,7 +119,9 @@ var DefaultRules = []*Rule{
 			{Field: "direction", Operator: "equals", Value: "outbound"},
 			{Field: "bytes", Operator: "gt", Value: 1000000.0}, // 1MB
 		},
-		Threshold: 1,
-		TimeWindow: "1m",
+		Threshold:       1,
+		TimeWindow:      "1m",
+		MitreTactics:    []string{"Exfiltration"},
+		MitreTechniques: []string{"T1041"},
 	},
 }

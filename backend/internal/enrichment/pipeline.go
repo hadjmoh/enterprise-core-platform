@@ -1,25 +1,29 @@
 package enrichment
 
 import (
+	"context"
+	"enterprise-core/backend/internal/auth"
 	"enterprise-core/backend/internal/buffer"
 	"enterprise-core/backend/pkg/logger"
 )
 
 // Pipeline orchestrates multiple enrichment services
 type Pipeline struct {
-	geoip  *GeoIPEnricher
-	threat *ThreatIntelEnricher
-	asset  *AssetEnricher
-	user   *UserEnricher
-	logger *logger.Logger
+	geoip    *GeoIPEnricher
+	threat   *ThreatIntelEnricher
+	asset    *AssetEnricher
+	user     *UserEnricher
+	identity auth.IdentityResolver
+	logger   *logger.Logger
 }
 
-func NewPipeline(logger *logger.Logger) *Pipeline {
+func NewPipeline(logger *logger.Logger, identity auth.IdentityResolver) *Pipeline {
 	return &Pipeline{
-		threat: NewThreatIntelEnricher(logger),
-		asset:  NewAssetEnricher(logger),
-		user:   NewUserEnricher(logger),
-		logger: logger,
+		threat:   NewThreatIntelEnricher(logger),
+		asset:    NewAssetEnricher(logger),
+		user:     NewUserEnricher(logger),
+		identity: identity,
+		logger:   logger,
 	}
 }
 
@@ -45,6 +49,24 @@ func (p *Pipeline) Handle(event buffer.Event) error {
 	
 	if p.user != nil {
 		data = p.user.Enrich(data)
+	}
+
+	// Dynamic Identity Resolution & Mapping (Unified Identity Phase)
+	if p.identity != nil {
+		identifier := ""
+		if user, ok := data["user"].(string); ok {
+			identifier = user
+		} else if ip, ok := data["src_ip"].(string); ok {
+			identifier = ip
+		}
+
+		if identifier != "" {
+			if id, err := p.identity.Resolve(context.Background(), identifier); err == nil {
+				data["owner_user"] = id.PrimaryUser
+				data["owner_department"] = id.Department
+				data["owner_uid"] = id.UID
+			}
+		}
 	}
 
 	// Update event with enriched data

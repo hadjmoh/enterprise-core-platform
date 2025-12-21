@@ -86,6 +86,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
                     <NavItem icon={Database} label="Data Inputs" to="/data-inputs" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={ShieldAlert} label="Security" to="/security" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={Layout} label="Security Posture" to="/security/dashboard" isOpen={isOpen} isMobile={isMobile} />
+                    <NavItem icon={ShieldAlert} label="Incident Review" to="/security/incidents" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={Globe} label="Threat Intelligence" to="/threat-intel" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={Zap} label="Detection Rules" to="/security/rules" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={FileText} label="Reporting Hub" to="/reports" isOpen={isOpen} isMobile={isMobile} />
