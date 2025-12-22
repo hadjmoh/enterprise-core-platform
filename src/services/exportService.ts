@@ -80,7 +80,7 @@ export const exportToCSV = (data: Record<string, unknown>[], filename: string, m
     const rows = data.map(row =>
         headers.map(header => {
             const val = row[header];
-            const escaped = String(val).replaceAll(/"/g, '""');
+            const escaped = String(val).replaceAll('"', '""');
             return `"${escaped}"`;
         }).join(',')
     );
