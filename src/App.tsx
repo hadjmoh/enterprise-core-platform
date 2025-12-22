@@ -12,6 +12,7 @@ import { IncidentReviewPage } from './pages/IncidentReviewPage';
 import { EntityProfilePage } from './pages/EntityProfilePage';
 import { ThreatIntelPage } from './pages/ThreatIntelPage';
 import { SecurityRulesPage } from './pages/SecurityRulesPage';
+import { CloudAssetsPage } from './pages/CloudAssetsPage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 function App() {
@@ -85,6 +86,14 @@ function App() {
                   element={
                     <DashboardLayout>
                       <SecurityRulesPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/cloud/assets"
+                  element={
+                    <DashboardLayout>
+                      <CloudAssetsPage />
                     </DashboardLayout>
                   }
                 />

@@ -16,6 +16,7 @@ import {
     Globe,
     Layout,
     Zap,
+    Cloud,
     type LucideIcon
 } from 'lucide-react';
 
@@ -89,6 +90,7 @@ export function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
                     <NavItem icon={ShieldAlert} label="Incident Review" to="/security/incidents" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={Globe} label="Threat Intelligence" to="/threat-intel" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={Zap} label="Detection Rules" to="/security/rules" isOpen={isOpen} isMobile={isMobile} />
+                    <NavItem icon={Cloud} label="Cloud Assets" to="/cloud/assets" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={FileText} label="Reporting Hub" to="/reports" isOpen={isOpen} isMobile={isMobile} />
                 </nav>
 
