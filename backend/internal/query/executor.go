@@ -16,6 +16,11 @@ import (
 	"time"
 )
 
+// DistributedExecutor defines the interface for running queries across the cluster
+type DistributedExecutor interface {
+	ExecuteDistributed(ctx context.Context, query string, limit int) ([]buffer.Event, error)
+}
+
 // Dispatcher is the high-level entry point for executing SPL queries
 type Dispatcher struct {
 	storage    *storage.FileStorageEngine
@@ -23,15 +28,17 @@ type Dispatcher struct {
 	masker     *compliance.Masker
 	auditor    *audit.AuditLogger
 	governor   *governance.Governor
+	distExec   DistributedExecutor
 }
 
-func NewDispatcher(s *storage.FileStorageEngine, auditor *audit.AuditLogger, policies *compliance.PolicyRegistry, gov *governance.Governor, logg *logger.Logger) *Dispatcher {
+func NewDispatcher(s *storage.FileStorageEngine, auditor *audit.AuditLogger, policies *compliance.PolicyRegistry, gov *governance.Governor, dist DistributedExecutor, logg *logger.Logger) *Dispatcher {
 	return &Dispatcher{
 		storage:    s,
 		authorizer: auth.NewAuthorizer(),
 		masker:     compliance.NewMasker(policies, logg),
 		auditor:    auditor,
 		governor:   gov,
+		distExec:   dist,
 	}
 }
 
@@ -39,6 +46,18 @@ func (d *Dispatcher) Execute(ctx context.Context, spl string, role string, metad
 	// 0. Check Governance Kill-switch
 	if d.governor != nil && d.governor.IsDisabled(governance.SearchSubsystem) {
 		return nil, fmt.Errorf("search operations halted by security control plane")
+	}
+
+	// 0.5 Run in Cluster Mode if available and requested (heuristic: check metadata or always if distExec present)
+	if d.distExec != nil {
+		results, err := d.distExec.ExecuteDistributed(ctx, spl, 1000) // Default limit
+		if err == nil {
+			d.auditor.Log(role, "SEARCH_CLUSTER", spl, "success", "", metadata)
+			return results, nil
+		}
+		// If distributed search fails, we continue with local (fallback) or return error?
+		// For now, let's return the error to be safe.
+		return nil, fmt.Errorf("distributed search failed: %w", err)
 	}
 
 	// Audit Start

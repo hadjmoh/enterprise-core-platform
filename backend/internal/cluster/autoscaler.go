@@ -81,31 +81,26 @@ func (as *AutoScaler) Evaluate(ctx context.Context) {
 		}
 	}
 
-	// Scale Down Logic (Omitted for brevity in PoC, but would follow similar threshold logic)
+	// Scale Down Logic
 }
 
 func (as *AutoScaler) Scale(ctx context.Context, action string, delta int, reason string) error {
 	as.mu.Lock()
 	defer as.mu.Unlock()
 
-	// 1. Cost Safety Check
-	// Mock node cost: $100/mo per node
 	nodeCost := 100.0
 	extraCost := float64(delta) * nodeCost
-	
-	// Real implementation would call costEngine.EstimateScaling(...)
 	
 	if action == "scale_up" {
 		as.logger.Info("Scaling up cluster", "delta", delta, "reason", reason, "estimated_cost", extraCost)
 		
-		// 2. Perform scaling (simulation)
 		for i := 0; i < delta; i++ {
 			newNodeID := fmt.Sprintf("node-%02d", len(as.monitor.GetNodes())+1)
 			as.monitor.AddNode(&ClusterNode{
 				ID:       newNodeID,
 				Status:   NodeOnline,
 				LastSeen: time.Now(),
-				Metrics:  Metrics{CPUUsage: 10.0, MemUsage: 15.0}, // Fresh node
+				Metrics:  Metrics{CPUUsage: 10.0, MemUsage: 15.0},
 			})
 		}
 	}

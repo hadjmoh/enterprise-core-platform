@@ -104,10 +104,31 @@ func main() {
 	// Initialize Pilot Engine (Session 7.2)
 	pilotEngine := pilot.NewPilotEngine(costEngine)
 
-	// Initialize Cluster Intelligence (Session 7.7)
+	// Initialize Cluster Intelligence (Session 7.7 & 8.1)
 	clusterMonitor := cluster.NewResourceMonitor()
 	autoScaler := cluster.NewAutoScaler(clusterMonitor, costEngine, logg)
 	go autoScaler.Run(context.Background())
+
+	nodeMgr := cluster.NewNodeManager()
+	shardMgr := cluster.NewShardManager()
+	shcMgr := cluster.NewSHCManager("node-primary-01", nodeMgr, logg)
+	loadBalancer := cluster.NewLoadBalancer(cluster.StrategyLeastLoaded, logg)
+	mrEngine := cluster.NewMapReduceEngine(nodeMgr, shardMgr, loadBalancer, logg)
+	discovery := cluster.NewPeerDiscovery(nodeMgr, []string{"127.0.0.1:50051"}, logg) // Self and static peers
+	hbWorker := cluster.NewHeartbeatWorker("node-primary-01", "127.0.0.1:50051", discovery, nodeMgr, logg)
+	hbWorker.Start()
+
+	clusterMaster := cluster.NewClusterMaster(nodeMgr, shardMgr, logg)
+	clusterMaster.Start(context.Background())
+
+	deploySrv := cluster.NewDeploymentServer(nodeMgr, logg)
+	txCoord := cluster.NewTransactionCoordinator(nodeMgr, logg)
+	rollbackMgr := cluster.NewRollbackManager(deploySrv, nodeMgr, txCoord, logg)
+	
+	// Multi-site and DR (Session 8.8)
+	siteMgr := cluster.NewSiteManager(logg)
+	replMgr := cluster.NewReplicationManager(siteMgr, cluster.ReplicationAsync, logg)
+	drCoord := cluster.NewDRCoordinator(siteMgr, replMgr, txCoord, logg)
 
 	// Audit Logger needed for Correlation and Dispatcher
 	auditor := audit.NewLogger("./data/audit.log", logg)
@@ -133,8 +154,8 @@ func main() {
 		logg.Warn("Failed to load detection rules", "error", err)
 	}
 	
-	// Create Search Dispatcher (Phase 4)
-	dispatcher := query.NewDispatcher(storageEngine, auditor, policyRegistry, governor, logg)
+	// Create Search Dispatcher (Phase 4 & 8)
+	dispatcher := query.NewDispatcher(storageEngine, auditor, policyRegistry, governor, mrEngine, logg)
 
 	backpressure := buffer.NewBackpressureController(10000, 0.8, logg)
 
@@ -195,9 +216,13 @@ func main() {
 		logg.Error("Failed to start UDP Syslog", err)
 	}
 
+	// Initialize Cluster gRPC Server (Session 8.1 & 8.2)
+	_ = cluster.NewGRPCServer(nodeMgr, dispatcher, shcMgr, logg)
+	// Note: In a real production app, we would start the gRPC listener here
+
 	// 4. Setup HTTP Router
 	authSvc := auth.NewMockProvider()
-	mux := api.NewRouter(ingestPipeline, dispatcher, authSvc, riskEngine, uebaEngine, soarOrch, policyRegistry, huntingMgr, mitreMgr, costEngine, pilotEngine, featureStore, anomalyDetector, explainerEngine, feedbackStore, merkleTree, autoScaler, clusterMonitor, trustGraph, simEngine, governor, driftDetector, policyEngine, logg)
+	mux := api.NewRouter(ingestPipeline, dispatcher, authSvc, riskEngine, uebaEngine, soarOrch, policyRegistry, huntingMgr, mitreMgr, costEngine, pilotEngine, featureStore, anomalyDetector, explainerEngine, feedbackStore, merkleTree, autoScaler, clusterMonitor, nodeMgr, shardMgr, shcMgr, deploySrv, rollbackMgr, drCoord, trustGraph, simEngine, governor, driftDetector, policyEngine, logg)
 	
 	// Add Prometheus metrics endpoint
 	mux.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)

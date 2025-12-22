@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "enterprise-core/backend/internal/proto";
+
+service ClusterService {
+    // Basic node discovery and health
+    rpc Heartbeat (HeartbeatRequest) returns (HeartbeatResponse);
+    rpc RegisterNode (RegisterRequest) returns (RegisterResponse);
+    
+    // Distributed search operations
+    rpc DistributedSearch (SearchRequest) returns (SearchResponse);
+
+    // Search Head Clustering (SHC) state sync
+    rpc SyncState (StateUpdate) returns (SyncResponse);
+    
+    // Configuration deployment
+    rpc DeployConfig (ConfigRequest) returns (ConfigResponse);
+    rpc GetConfig (ConfigRequest) returns (ConfigResponse);
+}
+
+message HeartbeatRequest {
+    string node_id = 1;
+    string address = 2;
+    float cpu_load = 3;
+    float mem_usage = 4;
+    int64 timestamp = 5;
+}
+
+message HeartbeatResponse {
+    bool success = 1;
+    int64 server_time = 2;
+}
+
+message RegisterRequest {
+    string node_id = 1;
+    string address = 2;
+    string role = 3; // "indexer", "search_head", "all"
+}
+
+message RegisterResponse {
+    bool accepted = 1;
+    string cluster_id = 2;
+}
+
+message SearchRequest {
+    string query = 1;
+    string request_id = 2;
+    map<string, string> metadata = 3;
+}
+
+message SearchResponse {
+    bytes results_json = 1;
+    string error = 2;
+}
+
+message StateUpdate {
+    string type = 1; // "search_job", "config", "session"
+    string key = 2;
+    bytes value_json = 3;
+    string origin_node_id = 4;
+}
+
+message SyncResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+message ConfigRequest {
+    string version = 1;
+    string checksum = 2;
+    map<string, string> content = 3;
+}
+
+message ConfigResponse {
+    bool success = 1;
+    string version = 2;
+    string error = 3;
+}

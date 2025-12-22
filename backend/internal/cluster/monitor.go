@@ -9,7 +9,7 @@ import (
 type NodeStatus string
 
 const (
-	NodeOnline   NodeStatus = "online"
+	NodeOnline   NodeStatus = "operational"
 	NodeOffline  NodeStatus = "offline"
 	NodeDegraded NodeStatus = "degraded"
 )

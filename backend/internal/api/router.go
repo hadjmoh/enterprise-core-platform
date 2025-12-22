@@ -45,7 +45,7 @@ type Router struct {
 	logger     *logger.Logger
 }
 
-func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc auth.Service, riskEngine *risk.RiskEngine, uebaEngine *security.UEBAEngine, soarOrch *security.Orchestrator, policies *compliance.PolicyRegistry, huntMgr *security.HuntingManager, mitreMgr *security.MitreManager, costEngine *cost.PolicyEngine, pilotEngine *pilot.PilotEngine, featureStore *analytics.FeatureStore, anomalyDetector *analytics.AnomalyDetector, explainerEngine *analytics.ExplainerEngine, feedbackStore *analytics.FeedbackStore, merkleTree *compliance.MerkleTree, scaler *cluster.AutoScaler, mon *cluster.ResourceMonitor, trustGraph *security.TrustGraph, simEngine *simulation.Engine, gov *governance.Governor, drift *governance.DriftDetector, pe *governance.PolicyEngine, l *logger.Logger) *http.ServeMux {
+func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc auth.Service, riskEngine *risk.RiskEngine, uebaEngine *security.UEBAEngine, soarOrch *security.Orchestrator, policies *compliance.PolicyRegistry, huntMgr *security.HuntingManager, mitreMgr *security.MitreManager, costEngine *cost.PolicyEngine, pilotEngine *pilot.PilotEngine, featureStore *analytics.FeatureStore, anomalyDetector *analytics.AnomalyDetector, explainerEngine *analytics.ExplainerEngine, feedbackStore *analytics.FeedbackStore, merkleTree *compliance.MerkleTree, scaler *cluster.AutoScaler, mon *cluster.ResourceMonitor, nodeMgr *cluster.NodeManager, shardMgr *cluster.ShardManager, shcMgr *cluster.SHCManager, deploySrv *cluster.DeploymentServer, rollbackMgr *cluster.RollbackManager, drCoord *cluster.DRCoordinator, trustGraph *security.TrustGraph, simEngine *simulation.Engine, gov *governance.Governor, drift *governance.DriftDetector, pe *governance.PolicyEngine, l *logger.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 	router := &Router{
 		mux:        mux,
@@ -64,7 +64,7 @@ func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc
 		explainerEngine: explainerEngine,
 		feedbackStore: feedbackStore,
 		merkleTree: merkleTree,
-		cluster:    NewClusterHandler(scaler, mon),
+		cluster:    NewClusterHandler(scaler, mon, nodeMgr, shardMgr, shcMgr, deploySrv, rollbackMgr, drCoord),
 		trustGraph: trustGraph,
 		simulation: NewSimulationHandler(simEngine),
 		governance: NewGovernanceHandler(gov, drift, pe),
@@ -133,6 +133,19 @@ func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc
 	mux.HandleFunc("POST /api/v1/cluster/scale", router.cluster.ManualScale)
 	mux.HandleFunc("POST /api/v1/cluster/policy", router.cluster.UpdatePolicy)
 	mux.HandleFunc("POST /api/v1/cluster/killswitch", router.cluster.ToggleKillSwitch)
+	
+	// Deployment Endpoints (Session 8.6)
+	mux.HandleFunc("POST /api/v1/cluster/deploy", router.cluster.DeployConfig)
+	mux.HandleFunc("GET /api/v1/cluster/configs", router.cluster.ListConfigs)
+	
+	// Rollback Endpoints (Session 8.7)
+	mux.HandleFunc("POST /api/v1/cluster/rollback", router.cluster.RollbackConfig)
+	mux.HandleFunc("GET /api/v1/cluster/deployment/history", router.cluster.GetDeploymentHistory)
+	mux.HandleFunc("GET /api/v1/cluster/deployment/status", router.cluster.GetDeploymentStatus)
+	
+	// Disaster Recovery Endpoints (Session 8.8)
+	mux.HandleFunc("GET /api/v1/cluster/dr/status", router.cluster.GetDRStatus)
+	mux.HandleFunc("POST /api/v1/cluster/dr/failover", router.cluster.TriggerFailover)
 	
 	// Lineage & Trust Endpoints (Session 7.8)
 	mux.HandleFunc("GET /api/v1/lineage/event", router.handleGetEventLineage)
