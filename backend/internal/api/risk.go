@@ -2,16 +2,16 @@ package api
 
 import (
 	"encoding/json"
-	"enterprise-core/backend/internal/security"
+	"enterprise-core/backend/internal/security/risk"
 	"net/http"
 	"strings"
 )
 
 type RiskHandler struct {
-	engine *security.RiskEngine
+	engine *risk.RiskEngine
 }
 
-func NewRiskHandler(engine *security.RiskEngine) *RiskHandler {
+func NewRiskHandler(engine *risk.RiskEngine) *RiskHandler {
 	return &RiskHandler{engine: engine}
 }
 

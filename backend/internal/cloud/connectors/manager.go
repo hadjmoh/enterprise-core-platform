@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"enterprise-core-platform/backend/internal/cloud"
+	"enterprise-core/backend/internal/cloud"
 )
 
 // ConnectorManager orchestrates multiple cloud connectors

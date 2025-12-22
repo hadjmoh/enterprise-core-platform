@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"enterprise-core-platform/backend/internal/cloud"
+	"enterprise-core/backend/internal/cloud"
 	"github.com/gin-gonic/gin"
 )
 

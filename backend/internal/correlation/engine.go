@@ -3,7 +3,7 @@ package correlation
 import (
 	"enterprise-core/backend/internal/audit"
 	"enterprise-core/backend/internal/buffer"
-	"enterprise-core/backend/internal/security"
+	"enterprise-core/backend/internal/security/risk"
 	"enterprise-core/backend/pkg/logger"
 	"sync"
 	"time"
@@ -15,7 +15,7 @@ type Engine struct {
 	windows    map[string]*TimeWindow
 	logger     *logger.Logger
 	auditor    *audit.Logger
-	risk       *security.RiskEngine
+	risk       *risk.RiskEngine
 	mu         sync.RWMutex
 	windowSize time.Duration
 }
@@ -26,7 +26,7 @@ type TimeWindow struct {
 	EndTime   time.Time
 }
 
-func NewEngine(windowSize time.Duration, logger *logger.Logger, auditor *audit.Logger, risk *security.RiskEngine) *Engine {
+func NewEngine(windowSize time.Duration, logger *logger.Logger, auditor *audit.Logger, risk *risk.RiskEngine) *Engine {
 	return &Engine{
 		rules:      make([]*Rule, 0),
 		windows:    make(map[string]*TimeWindow),

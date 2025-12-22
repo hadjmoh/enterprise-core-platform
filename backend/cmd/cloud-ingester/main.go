@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"enterprise-core-platform/backend/internal/cloud"
-	"enterprise-core-platform/backend/internal/cloud/connectors"
+	"enterprise-core/backend/internal/cloud"
+	"enterprise-core/backend/internal/cloud/connectors"
 
 	"go.uber.org/zap"
 )

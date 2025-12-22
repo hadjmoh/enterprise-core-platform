@@ -61,6 +61,38 @@ func (rt *Router) handleSearch(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
+	// 0. Enforce Cost Policy
+	// Extract time range from query params or default to 24h
+	start := time.Now().Add(-24 * time.Hour)
+	end := time.Now()
+	if s := r.URL.Query().Get("start"); s != "" {
+		if t, err := time.Parse(time.RFC3339, s); err == nil {
+			start = t
+		}
+	}
+	if e := r.URL.Query().Get("end"); e != "" {
+		if t, err := time.Parse(time.RFC3339, e); err == nil {
+			end = t
+		}
+	}
+
+	// Double-check simple cost estimate
+	if rt.costEngine != nil {
+		_, allowed, reason, err := rt.costEngine.EstimateAndCheck(query, start, end, role)
+		if err != nil {
+			rt.logger.Error("Cost estimation error", err)
+			// Decide whether to fail open or closed. For safety, fail open with warning log?
+			// Or fail closed. Let's fail closed for "MANDATORY" safety engine.
+			http.Error(w, "Failed to validate query safety", http.StatusInternalServerError)
+			return
+		}
+		if !allowed {
+			rt.logger.Warn("Query blocked by cost engine", "query", query, "user", role, "reason", reason)
+			rt.sendSSE(w, "error", SearchError{Code: "COST_LIMIT_EXCEEDED", Message: reason, Fatal: true})
+			return
+		}
+	}
+
 	// Context for query execution
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
 	defer cancel()

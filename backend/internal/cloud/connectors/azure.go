@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"enterprise-core-platform/backend/internal/cloud"
+	"enterprise-core/backend/internal/cloud"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"

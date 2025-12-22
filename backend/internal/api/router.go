@@ -5,7 +5,12 @@ import (
 	"enterprise-core/backend/internal/middleware"
 	"enterprise-core/backend/internal/pipeline"
 	"enterprise-core/backend/internal/query"
+	"enterprise-core/backend/internal/query/cost"
+	"enterprise-core/backend/internal/query/pilot"
+	"enterprise-core/backend/internal/analytics"
 	"enterprise-core/backend/internal/security"
+	"enterprise-core/backend/internal/security/risk"
+	"enterprise-core/backend/internal/compliance"
 	"enterprise-core/backend/pkg/logger"
 	"encoding/json"
 	"net/http"
@@ -22,10 +27,17 @@ type Router struct {
 	policies   *compliance.PolicyRegistry
 	hunting    *HuntingHandler
 	mitre      *MitreHandler
+	costEngine *cost.PolicyEngine
+	pilotEngine *pilot.PilotEngine
+	featureStore *analytics.FeatureStore
+	anomalyDetector *analytics.AnomalyDetector
+	explainerEngine *analytics.ExplainerEngine
+	feedbackStore *analytics.FeedbackStore
+	merkleTree *compliance.MerkleTree
 	logger     *logger.Logger
 }
 
-func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc auth.Service, riskEngine *security.RiskEngine, uebaEngine *security.UEBAEngine, soarOrch *security.Orchestrator, policies *compliance.PolicyRegistry, huntMgr *security.HuntingManager, mitreMgr *security.MitreManager, l *logger.Logger) *http.ServeMux {
+func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc auth.Service, riskEngine *risk.RiskEngine, uebaEngine *security.UEBAEngine, soarOrch *security.Orchestrator, policies *compliance.PolicyRegistry, huntMgr *security.HuntingManager, mitreMgr *security.MitreManager, costEngine *cost.PolicyEngine, pilotEngine *pilot.PilotEngine, featureStore *analytics.FeatureStore, anomalyDetector *analytics.AnomalyDetector, explainerEngine *analytics.ExplainerEngine, feedbackStore *analytics.FeedbackStore, merkleTree *compliance.MerkleTree, l *logger.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 	router := &Router{
 		mux:        mux,
@@ -37,6 +49,13 @@ func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc
 		policies:   policies,
 		hunting:    NewHuntingHandler(huntMgr),
 		mitre:      NewMitreHandler(mitreMgr),
+		costEngine: costEngine,
+		pilotEngine: pilotEngine,
+		featureStore: featureStore,
+		anomalyDetector: anomalyDetector,
+		explainerEngine: explainerEngine,
+		feedbackStore: feedbackStore,
+		merkleTree: merkleTree,
 		logger:     l,
 	}
 
@@ -62,6 +81,10 @@ func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc
 
 	// Search Endpoint (Streaming SSE)
 	mux.HandleFunc("GET /services/search", router.handleSearch)
+	mux.HandleFunc("POST /api/search/estimate", router.handleEstimateCost)
+
+	// Pilot Endpoint
+	mux.HandleFunc("POST /api/pilot/suggest", router.handlePilotSuggest)
 
 	// Risk Scoring Endpoints
 	mux.HandleFunc("GET /api/v1/risk/top-entities", router.risk.GetTopEntities)

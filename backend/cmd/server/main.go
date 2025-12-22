@@ -4,6 +4,7 @@ import (
 	"context"
 	"enterprise-core/backend/internal/api"
 	"enterprise-core/backend/internal/alerting"
+	"enterprise-core/backend/internal/analytics"
 	"enterprise-core/backend/internal/blockchain"
 	"enterprise-core/backend/internal/buffer"
 	"enterprise-core/backend/internal/correlation"
@@ -19,7 +20,9 @@ import (
 	"enterprise-core/backend/internal/network"
 	"enterprise-core/backend/internal/pipeline"
 	"enterprise-core/backend/internal/query"
+	"enterprise-core/backend/internal/query/cost"
 	"enterprise-core/backend/internal/security"
+	"enterprise-core/backend/internal/security/risk"
 	"enterprise-core/backend/internal/storage"
 	"enterprise-core/backend/internal/tenant"
 	"enterprise-core/backend/internal/writer"
@@ -55,15 +58,27 @@ func main() {
 	enrichmentPipe := enrichment.NewPipeline(logg, idResolver)
 	
 	// Initialize Risk Engine for SIEM
-	riskEngine := security.NewRiskEngine(logg)
-	riskDecay := security.NewRiskDecayService(riskEngine, 1*time.Hour, 0.5, logg)
+	riskEngine := risk.NewRiskEngine(logg)
+	riskDecay := risk.NewRiskDecayService(riskEngine, 1*time.Hour, 0.5, logg)
 	go riskDecay.Run(context.Background())
 
 	// Initialize Compliance & Privacy Policies
 	policyRegistry := compliance.NewPolicyRegistry(logg)
+	
+	// Initialize Data Governance Engines (Session 7.6)
+	vault := compliance.NewPrivacyVault("enterprise-salt-secure-random")
+	merkleTree := compliance.NewMerkleTree(nil)
+
+	// Initialize Cost & Safety Engine (Session 7.2)
+	costEngine := cost.NewPolicyEngine()
 
 	// Initialize UEBA Engine
 	uebaEngine := security.NewUEBAEngine(logg)
+
+	// Initialize Analytics & Feature Store (Session 7.4)
+	featureStore := analytics.NewFeatureStore("./data/features.json")
+	featureExtractor := analytics.NewFeatureExtractor(featureStore)
+	anomalyDetector := analytics.NewAnomalyDetector()
 
 	// Initialize SOAR Orchestrator
 	soarOrch := security.NewOrchestrator(auditor, logg)
@@ -107,6 +122,9 @@ func main() {
 		uebaEngine,
 		riskEngine,
 		soarOrch,
+		featureExtractor,
+		vault,
+		merkleTree,
 		logg,
 	)
 
@@ -144,7 +162,7 @@ func main() {
 
 	// 4. Setup HTTP Router
 	authSvc := auth.NewMockProvider()
-	mux := api.NewRouter(ingestPipeline, dispatcher, authSvc, riskEngine, uebaEngine, soarOrch, policyRegistry, huntingMgr, mitreMgr, logg)
+	mux := api.NewRouter(ingestPipeline, dispatcher, authSvc, riskEngine, uebaEngine, soarOrch, policyRegistry, huntingMgr, mitreMgr, costEngine, pilotEngine, featureStore, anomalyDetector, explainerEngine, feedbackStore, merkleTree, logg)
 	
 	// Add Prometheus metrics endpoint
 	mux.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)

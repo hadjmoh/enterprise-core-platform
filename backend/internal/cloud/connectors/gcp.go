@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"enterprise-core-platform/backend/internal/cloud"
+	"enterprise-core/backend/internal/cloud"
 
 	compute "cloud.google.com/go/compute/apiv1"
 	"cloud.google.com/go/compute/apiv1/computepb"

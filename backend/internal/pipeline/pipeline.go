@@ -9,6 +9,9 @@ import (
 	"enterprise-core/backend/internal/storage"
 	"enterprise-core/backend/internal/tenant"
 	"enterprise-core/backend/internal/security"
+	"enterprise-core/backend/internal/security/risk"
+	"enterprise-core/backend/internal/analytics"
+	"enterprise-core/backend/internal/compliance"
 	"enterprise-core/backend/pkg/logger"
 	"context"
 	"errors"
@@ -31,8 +34,11 @@ type IngestionPipeline struct {
 	backpressure   *buffer.BackpressureController
 	tenantManager *tenant.Manager
 	ueba           *security.UEBAEngine
-	risk           *security.RiskEngine
+	risk           *risk.RiskEngine
 	soar           *security.Orchestrator
+	featureExtractor *analytics.FeatureExtractor
+	vault          *compliance.PrivacyVault
+	merkleTree     *compliance.MerkleTree
 	logger         *logger.Logger
 }
 
@@ -46,8 +52,11 @@ func NewIngestionPipeline(
 	backpressure *buffer.BackpressureController,
 	tenantManager *tenant.Manager,
 	ueba *security.UEBAEngine,
-	risk *security.RiskEngine,
+	risk *risk.RiskEngine,
 	soar *security.Orchestrator,
+	featureExtractor *analytics.FeatureExtractor,
+	vault *compliance.PrivacyVault,
+	merkleTree *compliance.MerkleTree,
 	logger *logger.Logger,
 ) *IngestionPipeline {
 	return &IngestionPipeline{
@@ -62,6 +71,9 @@ func NewIngestionPipeline(
 		ueba:           ueba,
 		risk:           risk,
 		soar:           soar,
+		featureExtractor: featureExtractor,
+		vault: vault,
+		merkleTree: merkleTree,
 		logger:         logger,
 	}
 }
@@ -78,6 +90,16 @@ func (p *IngestionPipeline) Process(event buffer.Event) error {
 	// 0.2 Extract Tenant and apply isolation logic if needed
 	tenantID := p.tenantManager.ExtractTenantID(event.Data)
 	event.Data["tenant_id"] = tenantID
+
+	// 0.3 Data Governance: Tokenization (Session 7.6)
+	if p.vault != nil {
+		if email, ok := event.Data["email"].(string); ok {
+			event.Data["email"] = p.vault.Tokenize(email)
+		}
+		if ssn, ok := event.Data["ssn"].(string); ok {
+			event.Data["ssn"] = p.vault.Tokenize(ssn)
+		}
+	}
 
 	// 1. Enrichment
 	if err := p.enrichment.Handle(event); err != nil {
@@ -157,12 +179,25 @@ func (p *IngestionPipeline) Process(event buffer.Event) error {
 			}
 		}
 	}
+	
+	// 3.2 Update Behavioral Features (Session 7.4)
+	if p.featureExtractor != nil {
+		p.featureExtractor.ProcessEvent(event)
+	}
 
 	// 4. Persistence to Storage Engine
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	if err := p.storage.Write(ctx, event); err != nil {
 		p.logger.Error("Storage persistence failed", err)
+	}
+
+	// 4.1 Audit Proof Generation (Session 7.6)
+	if p.merkleTree != nil {
+		// In a real system we would hash the entire event content
+		// Here we just use the event ID or Source + Time
+		data := fmt.Sprintf("%v-%v", event.Source, event.Timestamp)
+		p.merkleTree.AddLeaf([]byte(data))
 	}
 
 	// 5. Push to Ring Buffer for real-time alerting/workers

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"enterprise-core-platform/backend/internal/cloud"
+	"enterprise-core/backend/internal/cloud"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"

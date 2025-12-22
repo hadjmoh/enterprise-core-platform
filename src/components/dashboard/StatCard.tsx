@@ -1,6 +1,6 @@
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, HelpCircle } from 'lucide-react';
 
 interface StatCardProps {
     title: string;
@@ -9,9 +9,10 @@ interface StatCardProps {
     trendValue?: string;
     icon: React.ReactNode;
     variant?: 'default' | 'glass' | 'neon';
+    onExplain?: () => void;
 }
 
-export function StatCard({ title, value, trend, trendValue, icon, variant = 'default' }: StatCardProps) {
+export function StatCard({ title, value, trend, trendValue, icon, variant = 'default', onExplain }: StatCardProps) {
     return (
         <Card variant={variant} className="relative overflow-hidden">
             <div className="flex justify-between items-start mb-4">
@@ -43,7 +44,24 @@ export function StatCard({ title, value, trend, trendValue, icon, variant = 'def
                     </span>
                     <span className="text-slate-500 text-sm">vs last hour</span>
                 </div>
-            )}
-        </Card>
+                </div>
+    )
+}
+
+{
+    onExplain && (
+        <button
+            onClick={(e) => {
+                e.stopPropagation();
+                onExplain();
+            }}
+            className="absolute bottom-2 right-2 p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-colors"
+            title="Explain this metric"
+        >
+            <HelpCircle className="w-4 h-4" />
+        </button>
+    )
+}
+        </Card >
     );
 }

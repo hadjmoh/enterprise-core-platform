@@ -13,6 +13,7 @@ import { EntityProfilePage } from './pages/EntityProfilePage';
 import { ThreatIntelPage } from './pages/ThreatIntelPage';
 import { SecurityRulesPage } from './pages/SecurityRulesPage';
 import { CloudAssetsPage } from './pages/CloudAssetsPage';
+import { CompliancePage } from './pages/CompliancePage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 function App() {
@@ -94,6 +95,14 @@ function App() {
                   element={
                     <DashboardLayout>
                       <CloudAssetsPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/compliance"
+                  element={
+                    <DashboardLayout>
+                      <CompliancePage />
                     </DashboardLayout>
                   }
                 />
