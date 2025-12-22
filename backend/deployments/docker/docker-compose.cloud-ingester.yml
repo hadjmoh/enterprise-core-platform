@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  cloud-ingester:
+    build:
+      context: ../../
+      dockerfile: deployments/docker/cloud-ingester.Dockerfile
+    container_name: cloud-ingester
+    restart: unless-stopped
+
+    environment:
+      # AWS Configuration
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+
+      # Azure Configuration
+      - AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID}
+      - AZURE_LOCATION=${AZURE_LOCATION:-eastus}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+
+      # GCP Configuration
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
+      - GCP_ZONE=${GCP_ZONE:-us-central1-a}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/gcp-service-account.json
+
+    volumes:
+      # Mount GCP service account key
+      - ${GCP_SERVICE_ACCOUNT_KEY}:/app/secrets/gcp-service-account.json:ro
+
+      # Mount data directory (if needed for persistence)
+      - cloud-ingester-data:/app/data
+
+    command:
+      - --asset-interval=5m
+      - --event-interval=1m
+      - --aws-region=${AWS_REGION:-us-east-1}
+      - --aws-account=${AWS_ACCOUNT_ID}
+      - --azure-subscription=${AZURE_SUBSCRIPTION_ID}
+      - --azure-location=${AZURE_LOCATION:-eastus}
+      - --gcp-project=${GCP_PROJECT_ID}
+      - --gcp-zone=${GCP_ZONE:-us-central1-a}
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Health check
+    healthcheck:
+      test: [ "CMD", "pgrep", "cloud-ingester" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+    # Network
+    networks:
+      - enterprise-network
+
+volumes:
+  cloud-ingester-data:
+    driver: local
+
+networks:
+  enterprise-network:
+    driver: bridge

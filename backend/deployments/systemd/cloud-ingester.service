@@ -1,0 +1,53 @@
+# Cloud Ingestion Service - systemd unit file
+# Install to: /etc/systemd/system/cloud-ingester.service
+
+[Unit]
+Description=Enterprise Core Platform - Cloud Ingestion Service
+Documentation=https://github.com/enterprise-core-platform
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cloud-ingester
+Group=cloud-ingester
+WorkingDirectory=/opt/enterprise-core-platform
+
+# Environment variables for cloud credentials
+EnvironmentFile=/etc/enterprise-core-platform/cloud-ingester.env
+
+# Command with default intervals
+ExecStart=/opt/enterprise-core-platform/bin/cloud-ingester \
+    --asset-interval=5m \
+    --event-interval=1m \
+    --aws-region=${AWS_REGION} \
+    --aws-account=${AWS_ACCOUNT_ID} \
+    --azure-subscription=${AZURE_SUBSCRIPTION_ID} \
+    --azure-location=${AZURE_LOCATION} \
+    --gcp-project=${GCP_PROJECT_ID} \
+    --gcp-zone=${GCP_ZONE}
+
+# Restart policy
+Restart=on-failure
+RestartSec=10s
+StartLimitInterval=5min
+StartLimitBurst=3
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/enterprise-core-platform
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cloud-ingester
+
+[Install]
+WantedBy=multi-user.target
