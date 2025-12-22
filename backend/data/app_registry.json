@@ -1,0 +1,211 @@
+{
+    "apps": [
+        {
+            "name": "security-analyzer",
+            "version": "1.2.0",
+            "title": "Security Analyzer Pro",
+            "author": "SecOps Team",
+            "category": "Security",
+            "description": "Advanced threat detection and security analysis for enterprise environments",
+            "longDescription": "Security Analyzer Pro provides comprehensive threat detection, real-time monitoring, and advanced analytics for enterprise security operations. Features include automated threat hunting, behavioral analysis, and integration with major SIEM platforms.",
+            "icon": "🛡️",
+            "screenshots": [],
+            "permissions": [
+                "read:logs",
+                "write:alerts",
+                "read:threats"
+            ],
+            "tags": [
+                "security",
+                "siem",
+                "threat-intel",
+                "monitoring"
+            ],
+            "downloads": 1247,
+            "rating": 4.8
+        },
+        {
+            "name": "log-analytics",
+            "version": "2.0.1",
+            "title": "Log Analytics Suite",
+            "author": "DataOps Inc",
+            "category": "Analytics",
+            "description": "Powerful log analysis and visualization toolkit with ML-powered insights",
+            "longDescription": "Transform your log data into actionable insights with advanced analytics, machine learning anomaly detection, and beautiful visualizations. Supports multiple log formats and provides real-time analysis capabilities.",
+            "icon": "📊",
+            "screenshots": [],
+            "permissions": [
+                "read:logs",
+                "write:dashboards"
+            ],
+            "tags": [
+                "analytics",
+                "logs",
+                "visualization",
+                "ml"
+            ],
+            "downloads": 2891,
+            "rating": 4.6
+        },
+        {
+            "name": "cloud-connector",
+            "version": "1.5.3",
+            "title": "Multi-Cloud Connector",
+            "author": "CloudBridge",
+            "category": "Integration",
+            "description": "Seamlessly connect and monitor AWS, Azure, and GCP resources",
+            "longDescription": "Unified cloud monitoring and management across AWS, Azure, and GCP. Automatically discover resources, track costs, monitor performance, and receive alerts for your entire multi-cloud infrastructure.",
+            "icon": "☁️",
+            "screenshots": [],
+            "permissions": [
+                "read:cloud",
+                "write:assets"
+            ],
+            "tags": [
+                "cloud",
+                "aws",
+                "azure",
+                "gcp",
+                "integration"
+            ],
+            "downloads": 1653,
+            "rating": 4.7
+        },
+        {
+            "name": "compliance-checker",
+            "version": "1.0.0",
+            "title": "Compliance Automation",
+            "author": "ComplianceCo",
+            "category": "Compliance",
+            "description": "Automated compliance monitoring for GDPR, HIPAA, SOC2, and more",
+            "longDescription": "Stay compliant with automated policy checks, continuous monitoring, and detailed audit reports. Supports GDPR, HIPAA, SOC2, PCI-DSS, and custom compliance frameworks.",
+            "icon": "✓",
+            "screenshots": [],
+            "permissions": [
+                "read:logs",
+                "read:config",
+                "write:reports"
+            ],
+            "tags": [
+                "compliance",
+                "gdpr",
+                "hipaa",
+                "audit"
+            ],
+            "downloads": 892,
+            "rating": 4.5
+        },
+        {
+            "name": "incident-response",
+            "version": "3.1.0",
+            "title": "Incident Response Toolkit",
+            "author": "IR Solutions",
+            "category": "Security",
+            "description": "Streamline incident response with automated playbooks and case management",
+            "longDescription": "Accelerate incident response with pre-built playbooks, automated triage, evidence collection, and comprehensive case management. Integrates with ticketing systems and communication platforms.",
+            "icon": "🚨",
+            "screenshots": [],
+            "permissions": [
+                "read:incidents",
+                "write:incidents",
+                "read:threats"
+            ],
+            "tags": [
+                "security",
+                "incident-response",
+                "soar",
+                "automation"
+            ],
+            "downloads": 1456,
+            "rating": 4.9
+        },
+        {
+            "name": "data-pipeline",
+            "version": "2.3.0",
+            "title": "Data Pipeline Builder",
+            "author": "DataFlow Systems",
+            "category": "Integration",
+            "description": "Visual data pipeline builder with 100+ connectors and transformations",
+            "longDescription": "Build complex data pipelines with a visual drag-and-drop interface. Connect to databases, APIs, files, and streaming sources. Apply transformations, enrichments, and route data to multiple destinations.",
+            "icon": "🔄",
+            "screenshots": [],
+            "permissions": [
+                "read:data",
+                "write:data",
+                "manage:pipelines"
+            ],
+            "tags": [
+                "integration",
+                "etl",
+                "data-pipeline",
+                "connectors"
+            ],
+            "downloads": 2134,
+            "rating": 4.4
+        }
+    ,{
+      "name": "aws-cloudtrail-connector",
+      "version": "1.0.0",
+      "title": "AWS CloudTrail Connector",
+      "author": "Enterprise Security Team",
+      "category": "Integration",
+      "description": "Ingest and analyze AWS CloudTrail logs for security monitoring and compliance",
+      "longDescription": "Real-time CloudTrail event ingestion with IAM activity monitoring, API call tracking, security event alerting, and compliance reporting. Provides comprehensive visibility into AWS account activity.",
+      "icon": "☁️",
+      "screenshots": [],
+      "permissions": ["read:cloud", "write:data", "write:alerts"],
+      "tags": ["aws", "cloud", "security", "audit", "compliance"],
+      "downloads": 0,
+      "rating": 5.0,
+      "downloadUrl": "/sample_apps/aws-cloudtrail-connector.tar.gz"
+    },
+    {
+      "name": "slack-connector",
+      "version": "1.0.0",
+      "title": "Slack Connector",
+      "author": "Enterprise Security Team",
+      "category": "Integration",
+      "description": "Send security alerts to Slack channels and ingest Slack audit logs",
+      "longDescription": "Real-time alert notifications to Slack with audit log ingestion, channel activity monitoring, user engagement tracking, and message volume analytics. Keep your team informed of security events.",
+      "icon": "💬",
+      "screenshots": [],
+      "permissions": ["read:alerts", "write:data"],
+      "tags": ["slack", "messaging", "alerts", "collaboration"],
+      "downloads": 0,
+      "rating": 5.0,
+      "downloadUrl": "/sample_apps/slack-connector.tar.gz"
+    },
+    {
+      "name": "github-connector",
+      "version": "1.0.0",
+      "title": "GitHub Connector",
+      "author": "Enterprise Security Team",
+      "category": "Integration",
+      "description": "Monitor repository events, pull requests, and security alerts from GitHub",
+      "longDescription": "Track repository events, commit activity, pull request metrics, and security alert ingestion. Monitor your development workflow and identify security issues in your codebase.",
+      "icon": "🐙",
+      "screenshots": [],
+      "permissions": ["read:data", "write:data"],
+      "tags": ["github", "devops", "security", "code"],
+      "downloads": 0,
+      "rating": 5.0,
+      "downloadUrl": "/sample_apps/github-connector.tar.gz"
+    },
+    {
+      "name": "jira-connector",
+      "version": "1.0.0",
+      "title": "Jira Connector",
+      "author": "Enterprise Security Team",
+      "category": "Integration",
+      "description": "Sync security incidents with Jira tickets and track SLA compliance",
+      "longDescription": "Automatic ticket creation for incidents with bi-directional sync, SLA tracking and compliance monitoring, workflow status updates, and comment synchronization. Streamline your incident response workflow.",
+      "icon": "📋",
+      "screenshots": [],
+      "permissions": ["read:incidents", "write:data"],
+      "tags": ["jira", "ticketing", "incident-management", "workflow"],
+      "downloads": 0,
+      "rating": 5.0,
+      "downloadUrl": "/sample_apps/jira-connector.tar.gz"
+    }
+    ]
+}

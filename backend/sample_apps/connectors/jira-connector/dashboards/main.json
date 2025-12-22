@@ -1,0 +1,50 @@
+{
+    "id": "main",
+    "title": "Jira Integration Dashboard",
+    "description": "Track incident tickets, SLA compliance, and workflow status",
+    "rows": [
+        {
+            "height": "300px",
+            "columns": [
+                {
+                    "width": 8,
+                    "panels": [
+                        {
+                            "id": "ticket-status",
+                            "title": "Ticket Status Distribution",
+                            "type": "bar",
+                            "query": "source=jira | stats count by status"
+                        }
+                    ]
+                },
+                {
+                    "width": 4,
+                    "panels": [
+                        {
+                            "id": "sla-compliance",
+                            "title": "SLA Compliance Rate",
+                            "type": "stat",
+                            "query": "source=jira | stats avg(sla_met) as compliance"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "height": "300px",
+            "columns": [
+                {
+                    "width": 12,
+                    "panels": [
+                        {
+                            "id": "incident-mapping",
+                            "title": "Incident to Ticket Mapping",
+                            "type": "stat",
+                            "query": "source=jira | stats count by incident_id"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

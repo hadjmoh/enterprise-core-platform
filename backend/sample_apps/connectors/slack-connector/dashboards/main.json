@@ -1,0 +1,50 @@
+{
+    "id": "main",
+    "title": "Slack Activity Dashboard",
+    "description": "Monitor Slack messages, channels, and user engagement",
+    "rows": [
+        {
+            "height": "300px",
+            "columns": [
+                {
+                    "width": 8,
+                    "panels": [
+                        {
+                            "id": "message-volume",
+                            "title": "Message Volume Over Time",
+                            "type": "line",
+                            "query": "source=slack | timechart count"
+                        }
+                    ]
+                },
+                {
+                    "width": 4,
+                    "panels": [
+                        {
+                            "id": "active-channels",
+                            "title": "Active Channels",
+                            "type": "stat",
+                            "query": "source=slack | stats dc(channel)"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "height": "300px",
+            "columns": [
+                {
+                    "width": 12,
+                    "panels": [
+                        {
+                            "id": "user-engagement",
+                            "title": "User Engagement",
+                            "type": "bar",
+                            "query": "source=slack | stats count by user | sort -count | head 10"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

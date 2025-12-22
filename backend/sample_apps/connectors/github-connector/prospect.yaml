@@ -1,0 +1,22 @@
+apiVersion: prospect/v1alpha1
+kind: App
+metadata:
+  name: github-connector
+  displayName: GitHub Connector
+  version: 1.0.0
+  description: Monitor repository events, pull requests, and security alerts from GitHub
+  author: Enterprise Security Team
+  license: MIT
+  icon: 🐙
+  tags:
+    - github
+    - devops
+    - security
+    - code
+permissions:
+  - read:data
+  - write:data
+dashboards:
+  - id: main
+    title: GitHub Activity
+    path: dashboards/main.json

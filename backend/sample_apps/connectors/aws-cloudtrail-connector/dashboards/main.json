@@ -1,0 +1,61 @@
+{
+    "id": "main",
+    "title": "AWS CloudTrail Overview",
+    "description": "Monitor AWS API activity and security events",
+    "rows": [
+        {
+            "height": "300px",
+            "columns": [
+                {
+                    "width": 8,
+                    "panels": [
+                        {
+                            "id": "events-timeline",
+                            "title": "CloudTrail Events Over Time",
+                            "type": "line",
+                            "query": "source=aws:cloudtrail | timechart count by eventName"
+                        }
+                    ]
+                },
+                {
+                    "width": 4,
+                    "panels": [
+                        {
+                            "id": "total-events",
+                            "title": "Total Events (24h)",
+                            "type": "stat",
+                            "query": "source=aws:cloudtrail | stats count"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "height": "300px",
+            "columns": [
+                {
+                    "width": 6,
+                    "panels": [
+                        {
+                            "id": "top-users",
+                            "title": "Top IAM Users",
+                            "type": "bar",
+                            "query": "source=aws:cloudtrail | stats count by userIdentity.userName | sort -count | head 10"
+                        }
+                    ]
+                },
+                {
+                    "width": 6,
+                    "panels": [
+                        {
+                            "id": "api-calls",
+                            "title": "API Call Distribution",
+                            "type": "area",
+                            "query": "source=aws:cloudtrail | timechart count by eventSource"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

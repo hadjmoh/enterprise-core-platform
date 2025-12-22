@@ -1,0 +1,22 @@
+apiVersion: prospect/v1alpha1
+kind: App
+metadata:
+  name: slack-connector
+  displayName: Slack Connector
+  version: 1.0.0
+  description: Send security alerts to Slack channels and ingest Slack audit logs
+  author: Enterprise Security Team
+  license: MIT
+  icon: 💬
+  tags:
+    - slack
+    - messaging
+    - alerts
+    - collaboration
+permissions:
+  - read:alerts
+  - write:data
+dashboards:
+  - id: main
+    title: Slack Activity
+    path: dashboards/main.json

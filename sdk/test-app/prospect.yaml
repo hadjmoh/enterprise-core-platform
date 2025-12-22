@@ -1,0 +1,14 @@
+apiVersion: prospect/v1alpha1
+kind: App
+metadata:
+  name: test-app
+  displayName: "My Awesome App"
+  version: 0.1.0
+  description: "A short description of what this app does."
+  author: "Your Name"
+  license: "MIT"
+  tags: [security, monitoring]
+permissions:
+  - "read:events"
+inputs: []
+dashboards: []

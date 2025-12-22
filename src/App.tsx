@@ -18,6 +18,8 @@ import { ClusterManagerPage } from './pages/ClusterManagerPage';
 import { TrustGraphPage } from './pages/TrustGraphPage';
 import { SimulationLabPage } from './pages/SimulationLabPage';
 import { ControlCenterPage } from './pages/ControlCenterPage';
+import AppDashboardPage from '@/pages/AppDashboardPage';
+import AppStorePage from '@/pages/AppStorePage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 function App() {
@@ -142,7 +144,22 @@ function App() {
                     </DashboardLayout>
                   }
                 />
-                {/* Future routes will go here */}
+                <Route
+                  path="/apps/:appName/dashboards/:dashboardId"
+                  element={
+                    <DashboardLayout>
+                      <AppDashboardPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/apps/store"
+                  element={
+                    <DashboardLayout>
+                      <AppStorePage />
+                    </DashboardLayout>
+                  }
+                />
               </Route>
 
               <Route path="*" element={<Navigate to="/" replace />} />

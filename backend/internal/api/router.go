@@ -2,6 +2,7 @@ package api
 
 import (
 	"enterprise-core/backend/internal/auth"
+	"enterprise-core/backend/internal/app"
 	"enterprise-core/backend/internal/middleware"
 	"enterprise-core/backend/internal/pipeline"
 	"enterprise-core/backend/internal/query"
@@ -41,11 +42,15 @@ type Router struct {
 	trustGraph *security.TrustGraph
 	simulation *SimulationHandler
 	governance *GovernanceHandler
+	app        *AppHandler
+	sandbox    *SandboxHandler
+	webhook    *WebhookHandler
+	submission *SubmissionHandler
 	auth       auth.Service
 	logger     *logger.Logger
 }
 
-func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc auth.Service, riskEngine *risk.RiskEngine, uebaEngine *security.UEBAEngine, soarOrch *security.Orchestrator, policies *compliance.PolicyRegistry, huntMgr *security.HuntingManager, mitreMgr *security.MitreManager, costEngine *cost.PolicyEngine, pilotEngine *pilot.PilotEngine, featureStore *analytics.FeatureStore, anomalyDetector *analytics.AnomalyDetector, explainerEngine *analytics.ExplainerEngine, feedbackStore *analytics.FeedbackStore, merkleTree *compliance.MerkleTree, scaler *cluster.AutoScaler, mon *cluster.ResourceMonitor, nodeMgr *cluster.NodeManager, shardMgr *cluster.ShardManager, shcMgr *cluster.SHCManager, deploySrv *cluster.DeploymentServer, rollbackMgr *cluster.RollbackManager, drCoord *cluster.DRCoordinator, trustGraph *security.TrustGraph, simEngine *simulation.Engine, gov *governance.Governor, drift *governance.DriftDetector, pe *governance.PolicyEngine, l *logger.Logger) *http.ServeMux {
+func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc auth.Service, riskEngine *risk.RiskEngine, uebaEngine *security.UEBAEngine, soarOrch *security.Orchestrator, policies *compliance.PolicyRegistry, huntMgr *security.HuntingManager, mitreMgr *security.MitreManager, costEngine *cost.PolicyEngine, pilotEngine *pilot.PilotEngine, featureStore *analytics.FeatureStore, anomalyDetector *analytics.AnomalyDetector, explainerEngine *analytics.ExplainerEngine, feedbackStore *analytics.FeedbackStore, merkleTree *compliance.MerkleTree, scaler *cluster.AutoScaler, mon *cluster.ResourceMonitor, nodeMgr *cluster.NodeManager, shardMgr *cluster.ShardManager, shcMgr *cluster.SHCManager, deploySrv *cluster.DeploymentServer, rollbackMgr *cluster.RollbackManager, drCoord *cluster.DRCoordinator, trustGraph *security.TrustGraph, simEngine *simulation.Engine, gov *governance.Governor, drift *governance.DriftDetector, pe *governance.PolicyEngine, appMgr *app.AppManager, l *logger.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 	router := &Router{
 		mux:        mux,
@@ -68,6 +73,10 @@ func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc
 		trustGraph: trustGraph,
 		simulation: NewSimulationHandler(simEngine),
 		governance: NewGovernanceHandler(gov, drift, pe),
+		app:        NewAppHandler(appMgr, l),
+		sandbox:    NewSandboxHandler(appMgr, l),
+		webhook:    NewWebhookHandler(appMgr.GetWebhookManager(), l),
+		submission: NewSubmissionHandler(appMgr.GetSubmissionManager(), l),
 		auth:       authSvc,
 		logger:     l,
 	}
@@ -161,6 +170,36 @@ func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc
 	mux.HandleFunc("POST /api/v1/governance/emergency/release", router.governance.ReleaseLockdown)
 	mux.HandleFunc("POST /api/v1/governance/emergency/killswitch", router.governance.ToggleKillSwitch)
 	mux.HandleFunc("GET /api/v1/governance/drift", router.governance.GetDrift)
+
+	// App Framework Endpoints (Session 9.1 & 9.2 & 9.3 & 9.4)
+	mux.HandleFunc("GET /api/v1/apps", router.app.ListApps)
+	mux.HandleFunc("POST /api/v1/apps", router.app.RegisterApp)
+	mux.HandleFunc("POST /api/v1/apps/install", router.app.InstallApp)
+	mux.HandleFunc("DELETE /api/v1/apps/", router.app.UninstallApp)
+	mux.HandleFunc("GET /api/v1/apps/{name}/dashboards/{id}", router.app.GetDashboard)
+	
+	// App Store Endpoints (Session 9.4)
+	mux.HandleFunc("GET /api/v1/apps/available", router.app.ListAvailableApps)
+	mux.HandleFunc("GET /api/v1/apps/available/", router.app.GetAppDetailsHandler)
+	mux.HandleFunc("GET /api/v1/apps/search", router.app.SearchAppsHandler)
+	
+	// Sandbox Endpoints (Session 9.5)
+	mux.HandleFunc("GET /api/v1/apps/{name}/sandbox", router.sandbox.GetSandboxStatus)
+	mux.HandleFunc("GET /api/v1/apps/{name}/resources", router.sandbox.GetResourceUsage)
+	mux.HandleFunc("PATCH /api/v1/apps/{name}/limits", router.sandbox.UpdateLimits)
+	
+	// Webhook Endpoints (Session 9.7)
+	mux.HandleFunc("GET /api/v1/apps/{name}/webhooks", router.webhook.ListWebhooks)
+	mux.HandleFunc("POST /api/v1/apps/{name}/webhooks", router.webhook.RegisterWebhook)
+	mux.HandleFunc("DELETE /api/v1/apps/{name}/webhooks/", router.webhook.DeleteWebhook)
+	mux.HandleFunc("GET /api/v1/apps/{name}/webhooks/{id}/logs", router.webhook.GetWebhookLogs)
+	
+	// Submission Endpoints (Session 9.8)
+	mux.HandleFunc("POST /api/v1/submissions", router.submission.SubmitApp)
+	mux.HandleFunc("GET /api/v1/submissions", router.submission.ListSubmissions)
+	mux.HandleFunc("GET /api/v1/submissions/", router.submission.GetSubmission)
+	mux.HandleFunc("POST /api/v1/submissions/{id}/approve", router.submission.ApproveSubmission)
+	mux.HandleFunc("POST /api/v1/submissions/{id}/reject", router.submission.RejectSubmission)
 
 	return mux
 }

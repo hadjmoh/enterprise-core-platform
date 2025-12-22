@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"enterprise-core/backend/internal/api"
+	"enterprise-core/backend/internal/app"
 	"enterprise-core/backend/internal/alerting"
 	"enterprise-core/backend/internal/analytics"
 	"enterprise-core/backend/internal/blockchain"
@@ -220,9 +221,15 @@ func main() {
 	_ = cluster.NewGRPCServer(nodeMgr, dispatcher, shcMgr, logg)
 	// Note: In a real production app, we would start the gRPC listener here
 
+	appMgr, err := app.NewAppManager("./installed_apps", logg)
+	if err != nil {
+		logg.Error("Failed to initialize App Manager", err)
+		os.Exit(1)
+	}
+
 	// 4. Setup HTTP Router
 	authSvc := auth.NewMockProvider()
-	mux := api.NewRouter(ingestPipeline, dispatcher, authSvc, riskEngine, uebaEngine, soarOrch, policyRegistry, huntingMgr, mitreMgr, costEngine, pilotEngine, featureStore, anomalyDetector, explainerEngine, feedbackStore, merkleTree, autoScaler, clusterMonitor, nodeMgr, shardMgr, shcMgr, deploySrv, rollbackMgr, drCoord, trustGraph, simEngine, governor, driftDetector, policyEngine, logg)
+	mux := api.NewRouter(ingestPipeline, dispatcher, authSvc, riskEngine, uebaEngine, soarOrch, policyRegistry, huntingMgr, mitreMgr, costEngine, pilotEngine, featureStore, anomalyDetector, explainerEngine, feedbackStore, merkleTree, autoScaler, clusterMonitor, nodeMgr, shardMgr, shcMgr, deploySrv, rollbackMgr, drCoord, trustGraph, simEngine, governor, driftDetector, policyEngine, appMgr, logg)
 	
 	// Add Prometheus metrics endpoint
 	mux.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)

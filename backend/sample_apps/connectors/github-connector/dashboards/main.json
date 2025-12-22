@@ -1,0 +1,61 @@
+{
+    "id": "main",
+    "title": "GitHub Activity Dashboard",
+    "description": "Monitor repository events, commits, and security findings",
+    "rows": [
+        {
+            "height": "300px",
+            "columns": [
+                {
+                    "width": 8,
+                    "panels": [
+                        {
+                            "id": "commit-activity",
+                            "title": "Commit Activity",
+                            "type": "area",
+                            "query": "source=github event=push | timechart count"
+                        }
+                    ]
+                },
+                {
+                    "width": 4,
+                    "panels": [
+                        {
+                            "id": "open-prs",
+                            "title": "Open Pull Requests",
+                            "type": "stat",
+                            "query": "source=github event=pull_request state=open | stats count"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "height": "300px",
+            "columns": [
+                {
+                    "width": 6,
+                    "panels": [
+                        {
+                            "id": "top-contributors",
+                            "title": "Top Contributors",
+                            "type": "bar",
+                            "query": "source=github event=push | stats count by author | sort -count | head 10"
+                        }
+                    ]
+                },
+                {
+                    "width": 6,
+                    "panels": [
+                        {
+                            "id": "security-alerts",
+                            "title": "Security Alerts",
+                            "type": "stat",
+                            "query": "source=github event=security_alert | stats count"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,24 @@
+apiVersion: prospect/v1alpha1
+kind: App
+metadata:
+  name: aws-cloudtrail-connector
+  displayName: AWS CloudTrail Connector
+  version: 1.0.0
+  description: Ingest and analyze AWS CloudTrail logs for security monitoring and compliance
+  author: Enterprise Security Team
+  license: MIT
+  icon: ☁️
+  tags:
+    - aws
+    - cloud
+    - security
+    - audit
+    - compliance
+permissions:
+  - read:cloud
+  - write:data
+  - write:alerts
+dashboards:
+  - id: main
+    title: CloudTrail Overview
+    path: dashboards/main.json

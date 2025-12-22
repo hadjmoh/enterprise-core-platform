@@ -1,0 +1,22 @@
+apiVersion: prospect/v1alpha1
+kind: App
+metadata:
+  name: jira-connector
+  displayName: Jira Connector
+  version: 1.0.0
+  description: Sync security incidents with Jira tickets and track SLA compliance
+  author: Enterprise Security Team
+  license: MIT
+  icon: 📋
+  tags:
+    - jira
+    - ticketing
+    - incident-management
+    - workflow
+permissions:
+  - read:incidents
+  - write:data
+dashboards:
+  - id: main
+    title: Jira Integration
+    path: dashboards/main.json
