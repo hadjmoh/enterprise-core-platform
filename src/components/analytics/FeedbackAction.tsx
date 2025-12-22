@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/Button';
-import { ThumbsUp, ThumbsDown, MessageSquare, AlertTriangle } from 'lucide-react';
-import { SearchService } from '../../services/searchService';
+import { ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface FeedbackActionProps {
     entityId: string;

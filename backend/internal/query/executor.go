@@ -6,7 +6,9 @@ import (
 	"enterprise-core/backend/internal/auth"
 	"enterprise-core/backend/internal/buffer"
 	"enterprise-core/backend/internal/compliance"
+	"enterprise-core/backend/internal/governance"
 	"enterprise-core/backend/internal/storage"
+	"enterprise-core/backend/pkg/logger"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -19,19 +21,26 @@ type Dispatcher struct {
 	storage    *storage.FileStorageEngine
 	authorizer *auth.Authorizer
 	masker     *compliance.Masker
-	auditor    *audit.Logger
+	auditor    *audit.AuditLogger
+	governor   *governance.Governor
 }
 
-func NewDispatcher(s *storage.FileStorageEngine, auditor *audit.Logger, policies *compliance.PolicyRegistry, logg *logger.Logger) *Dispatcher {
+func NewDispatcher(s *storage.FileStorageEngine, auditor *audit.AuditLogger, policies *compliance.PolicyRegistry, gov *governance.Governor, logg *logger.Logger) *Dispatcher {
 	return &Dispatcher{
 		storage:    s,
 		authorizer: auth.NewAuthorizer(),
 		masker:     compliance.NewMasker(policies, logg),
 		auditor:    auditor,
+		governor:   gov,
 	}
 }
 
 func (d *Dispatcher) Execute(ctx context.Context, spl string, role string, metadata map[string]interface{}) ([]buffer.Event, error) {
+	// 0. Check Governance Kill-switch
+	if d.governor != nil && d.governor.IsDisabled(governance.SearchSubsystem) {
+		return nil, fmt.Errorf("search operations halted by security control plane")
+	}
+
 	// Audit Start
 	d.auditor.Log(role, "SEARCH_START", spl, "success", "", metadata)
 
@@ -91,6 +100,11 @@ func (d *Dispatcher) Execute(ctx context.Context, spl string, role string, metad
 	return results, err
 }
 func (d *Dispatcher) ExecuteStream(ctx context.Context, spl string, role string, metadata map[string]interface{}) (<-chan buffer.Event, NodeMetadata, <-chan error, error) {
+	// 0. Check Governance Kill-switch
+	if d.governor != nil && d.governor.IsDisabled(governance.SearchSubsystem) {
+		return nil, NodeMetadata{}, nil, fmt.Errorf("search operations halted by security control plane")
+	}
+
 	// Audit Start
 	d.auditor.Log(role, "SEARCH_START_STREAM", spl, "success", "", metadata)
 

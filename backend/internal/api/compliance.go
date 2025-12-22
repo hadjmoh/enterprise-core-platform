@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"enterprise-core/backend/internal/compliance"
 )
 
 // handleGetProof returns the current Merkle Tree root hash

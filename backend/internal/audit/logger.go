@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// Logger provides immutable audit logging for governance
-type Logger struct {
+// AuditLogger provides immutable audit logging for governance
+type AuditLogger struct {
 	filePath string
 	logger   *logger.Logger
 	mu       sync.Mutex
@@ -25,14 +25,14 @@ type Entry struct {
 	Details    map[string]interface{} `json:"details,omitempty"`
 }
 
-func NewLogger(filePath string, logger *logger.Logger) *Logger {
-	return &Logger{
+func NewLogger(filePath string, logger *logger.Logger) *AuditLogger {
+	return &AuditLogger{
 		filePath: filePath,
 		logger:   logger,
 	}
 }
 
-func (a *Logger) Log(actor, action, resource, status string, resultHash string, details map[string]interface{}) error {
+func (a *AuditLogger) Log(actor, action, resource, status string, resultHash string, details map[string]interface{}) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 

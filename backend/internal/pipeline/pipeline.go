@@ -12,10 +12,12 @@ import (
 	"enterprise-core/backend/internal/security/risk"
 	"enterprise-core/backend/internal/analytics"
 	"enterprise-core/backend/internal/compliance"
+	"enterprise-core/backend/internal/governance"
 	"enterprise-core/backend/pkg/logger"
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -39,6 +41,9 @@ type IngestionPipeline struct {
 	featureExtractor *analytics.FeatureExtractor
 	vault          *compliance.PrivacyVault
 	merkleTree     *compliance.MerkleTree
+	lineageTracker *security.LineageTracker
+	trustGraph     *security.TrustGraph
+	governor       *governance.Governor
 	logger         *logger.Logger
 }
 
@@ -57,6 +62,9 @@ func NewIngestionPipeline(
 	featureExtractor *analytics.FeatureExtractor,
 	vault *compliance.PrivacyVault,
 	merkleTree *compliance.MerkleTree,
+	lineageTracker *security.LineageTracker,
+	trustGraph *security.TrustGraph,
+	gov *governance.Governor,
 	logger *logger.Logger,
 ) *IngestionPipeline {
 	return &IngestionPipeline{
@@ -74,6 +82,9 @@ func NewIngestionPipeline(
 		featureExtractor: featureExtractor,
 		vault: vault,
 		merkleTree: merkleTree,
+		lineageTracker: lineageTracker,
+		trustGraph: trustGraph,
+		governor: gov,
 		logger:         logger,
 	}
 }
@@ -81,6 +92,11 @@ func NewIngestionPipeline(
 func (p *IngestionPipeline) Process(event buffer.Event) error {
 	// 0. Update Backpressure load
 	p.backpressure.UpdateLoad(p.buffer.Size())
+	
+	// 0.05 Check Governance Kill-switch
+	if p.governor != nil && p.governor.IsDisabled(governance.IngestSubsystem) {
+		return errors.New("ingestion halted by security control plane")
+	}
 
 	// 0.1 Check Backpressure
 	if !p.backpressure.ShouldAccept() {
@@ -90,6 +106,15 @@ func (p *IngestionPipeline) Process(event buffer.Event) error {
 	// 0.2 Extract Tenant and apply isolation logic if needed
 	tenantID := p.tenantManager.ExtractTenantID(event.Data)
 	event.Data["tenant_id"] = tenantID
+
+	// 0.2.1 Record Trust Flow
+	if p.trustGraph != nil {
+		p.trustGraph.UpdateNode(event.Source, "system", security.TrustVerified, nil)
+		if user, ok := event.Data["user"].(string); ok {
+			p.trustGraph.UpdateNode(user, "user", security.TrustReputable, nil)
+			p.trustGraph.AddEdge(user, event.Source, "produced", security.TrustReputable, nil)
+		}
+	}
 
 	// 0.3 Data Governance: Tokenization (Session 7.6)
 	if p.vault != nil {
@@ -101,9 +126,16 @@ func (p *IngestionPipeline) Process(event buffer.Event) error {
 		}
 	}
 
+	// 0.4 Initialize Lineage
+	if p.lineageTracker != nil {
+		event.Lineage = append(event.Lineage, p.lineageTracker.CreateStep("ingestion", "receival", event.Data))
+	}
+
 	// 1. Enrichment
 	if err := p.enrichment.Handle(event); err != nil {
 		p.logger.Error("Enrichment failed", err)
+	} else if p.lineageTracker != nil {
+		event.Lineage = append(event.Lineage, p.lineageTracker.CreateStep("enrichment", "enforce", event.Data))
 	}
 
 	// 2. Correlation
@@ -126,6 +158,10 @@ func (p *IngestionPipeline) Process(event buffer.Event) error {
 				p.soar.StageAction("block_ip", srcIP, "critical", map[string]interface{}{"ip": srcIP})
 			}
 		}
+	}
+
+	if p.lineageTracker != nil {
+		event.Lineage = append(event.Lineage, p.lineageTracker.CreateStep("correlation", "match", event.Data))
 	}
 
 	// 3. Detection
@@ -202,4 +238,42 @@ func (p *IngestionPipeline) Process(event buffer.Event) error {
 
 	// 5. Push to Ring Buffer for real-time alerting/workers
 	return p.buffer.Push(event)
+}
+
+// ProcessSimulation executes the pipeline logic in 'shadow' mode for testing/replay
+func (p *IngestionPipeline) ProcessSimulation(event buffer.Event) (map[string]interface{}, error) {
+	outcome := map[string]interface{}{
+		"event_id": event.ID,
+		"triggered_alert": false,
+		"detections": []string{},
+		"correlations": []string{},
+	}
+
+	// 1. Enrichment (Read-only)
+	p.enrichment.Handle(event)
+
+	// 2. Correlation (Analysis only)
+	correlations := p.correlation.ProcessEvent(event)
+	for _, corr := range correlations {
+		outcome["triggered_alert"] = true
+		outcome["correlations"] = append(outcome["correlations"].([]string), corr.RuleName)
+	}
+
+	// 3. Detection (Analysis only)
+	detections := p.detection.ProcessEvent(event)
+	for _, det := range detections {
+		outcome["triggered_alert"] = true
+		outcome["detections"] = append(outcome["detections"].([]string), det.RuleName)
+	}
+
+	// 3.1 UEBA (Analysis only)
+	if p.ueba != nil {
+		anomalies := p.ueba.Process(event)
+		if len(anomalies) > 0 {
+			outcome["triggered_alert"] = true
+			outcome["ueba_anomalies"] = len(anomalies)
+		}
+	}
+
+	return outcome, nil
 }

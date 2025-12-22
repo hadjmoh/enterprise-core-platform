@@ -10,6 +10,7 @@ import (
 
 	compute "cloud.google.com/go/compute/apiv1"
 	"cloud.google.com/go/compute/apiv1/computepb"
+	"cloud.google.com/go/logging"
 	"cloud.google.com/go/logging/logadmin"
 	"google.golang.org/api/iterator"
 )
@@ -223,7 +224,7 @@ func (c *GCPConnector) FetchEvents(ctx context.Context, startTime, endTime time.
 }
 
 // convertGCPLogEntry converts GCP log entry to CloudEvent
-func (c *GCPConnector) convertGCPLogEntry(entry *logadmin.Entry) *cloud.CloudEvent {
+func (c *GCPConnector) convertGCPLogEntry(entry *logging.Entry) *cloud.CloudEvent {
 	cloudEvent := &cloud.CloudEvent{
 		ID:        entry.InsertID,
 		Provider:  cloud.ProviderGCP,

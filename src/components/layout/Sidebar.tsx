@@ -4,6 +4,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
     LayoutDashboard,
+    ShieldCheck,
     Users,
     Server,
     Settings,
@@ -17,6 +18,9 @@ import {
     Layout,
     Zap,
     Cloud,
+    Fingerprint,
+    Network,
+    FlaskConical,
     type LucideIcon
 } from 'lucide-react';
 
@@ -91,6 +95,10 @@ export function Sidebar({ isOpen, setIsOpen, isMobile }: SidebarProps) {
                     <NavItem icon={Globe} label="Threat Intelligence" to="/threat-intel" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={Zap} label="Detection Rules" to="/security/rules" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={Cloud} label="Cloud Assets" to="/cloud/assets" isOpen={isOpen} isMobile={isMobile} />
+                    <NavItem icon={Fingerprint} label="Trust Graph" to="/trust-graph" isOpen={isOpen} isMobile={isMobile} />
+                    <NavItem icon={Network} label="Cluster Management" to="/cluster" isOpen={isOpen} isMobile={isMobile} />
+                    <NavItem icon={FlaskConical} label="Simulation Lab" to="/simulation-lab" isOpen={isOpen} isMobile={isMobile} />
+                    <NavItem icon={ShieldCheck} label="Control Center" to="/control-center" isOpen={isOpen} isMobile={isMobile} />
                     <NavItem icon={FileText} label="Reporting Hub" to="/reports" isOpen={isOpen} isMobile={isMobile} />
                 </nav>
 

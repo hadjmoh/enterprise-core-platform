@@ -1,6 +1,5 @@
 package cost
 
-import "time"
 
 // RiskLevel represents the risk classification of a query
 type RiskLevel string

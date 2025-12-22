@@ -23,6 +23,11 @@ func NewMockProvider() *MockProvider {
 	}
 }
 
+func (p *MockProvider) Login(username, password string) (string, error) {
+	// Mock successful login for any user
+	return "mock-token-" + username, nil
+}
+
 func (p *MockProvider) ValidateToken(token string) (Claims, error) {
 	identity, err := p.resolver.Resolve(nil, token)
 	if err != nil {

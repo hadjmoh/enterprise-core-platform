@@ -156,9 +156,9 @@ func (s *IngestionService) fetchAssets(ctx context.Context) {
 	// Log statistics
 	stats := s.assetGraph.GetStats()
 	s.logger.Info("Asset graph updated",
-		zap.Int("total_assets", stats.TotalAssets),
-		zap.Int("total_relationships", stats.TotalRelationships),
-		zap.Any("by_provider", stats.AssetsByProvider),
+		zap.Any("total_assets", stats["total_assets"]),
+		zap.Any("total_relationships", stats["total_relationships"]),
+		zap.Any("by_provider", stats["by_provider"]),
 	)
 
 	// In production, would persist to database here

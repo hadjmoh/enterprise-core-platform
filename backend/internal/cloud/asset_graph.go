@@ -1,7 +1,6 @@
 package cloud
 
 import (
-	"fmt"
 	"sync"
 )
 

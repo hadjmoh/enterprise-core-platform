@@ -11,6 +11,9 @@ import (
 	"enterprise-core/backend/internal/security"
 	"enterprise-core/backend/internal/security/risk"
 	"enterprise-core/backend/internal/compliance"
+	"enterprise-core/backend/internal/cluster"
+	"enterprise-core/backend/internal/simulation"
+	"enterprise-core/backend/internal/governance"
 	"enterprise-core/backend/pkg/logger"
 	"encoding/json"
 	"net/http"
@@ -34,10 +37,15 @@ type Router struct {
 	explainerEngine *analytics.ExplainerEngine
 	feedbackStore *analytics.FeedbackStore
 	merkleTree *compliance.MerkleTree
+	cluster    *ClusterHandler
+	trustGraph *security.TrustGraph
+	simulation *SimulationHandler
+	governance *GovernanceHandler
+	auth       auth.Service
 	logger     *logger.Logger
 }
 
-func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc auth.Service, riskEngine *risk.RiskEngine, uebaEngine *security.UEBAEngine, soarOrch *security.Orchestrator, policies *compliance.PolicyRegistry, huntMgr *security.HuntingManager, mitreMgr *security.MitreManager, costEngine *cost.PolicyEngine, pilotEngine *pilot.PilotEngine, featureStore *analytics.FeatureStore, anomalyDetector *analytics.AnomalyDetector, explainerEngine *analytics.ExplainerEngine, feedbackStore *analytics.FeedbackStore, merkleTree *compliance.MerkleTree, l *logger.Logger) *http.ServeMux {
+func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc auth.Service, riskEngine *risk.RiskEngine, uebaEngine *security.UEBAEngine, soarOrch *security.Orchestrator, policies *compliance.PolicyRegistry, huntMgr *security.HuntingManager, mitreMgr *security.MitreManager, costEngine *cost.PolicyEngine, pilotEngine *pilot.PilotEngine, featureStore *analytics.FeatureStore, anomalyDetector *analytics.AnomalyDetector, explainerEngine *analytics.ExplainerEngine, feedbackStore *analytics.FeedbackStore, merkleTree *compliance.MerkleTree, scaler *cluster.AutoScaler, mon *cluster.ResourceMonitor, trustGraph *security.TrustGraph, simEngine *simulation.Engine, gov *governance.Governor, drift *governance.DriftDetector, pe *governance.PolicyEngine, l *logger.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 	router := &Router{
 		mux:        mux,
@@ -56,6 +64,11 @@ func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc
 		explainerEngine: explainerEngine,
 		feedbackStore: feedbackStore,
 		merkleTree: merkleTree,
+		cluster:    NewClusterHandler(scaler, mon),
+		trustGraph: trustGraph,
+		simulation: NewSimulationHandler(simEngine),
+		governance: NewGovernanceHandler(gov, drift, pe),
+		auth:       authSvc,
 		logger:     l,
 	}
 
@@ -110,6 +123,31 @@ func NewRouter(pipe *pipeline.IngestionPipeline, disp *query.Dispatcher, authSvc
 
 	// MITRE Endpoints
 	mux.HandleFunc("GET /api/v1/security/mitre/coverage", router.mitre.GetCoverage)
+
+	// Compliance Endpoints
+	mux.HandleFunc("GET /api/v1/compliance/proof", router.handleGetProof)
+	mux.HandleFunc("POST /api/v1/compliance/verify", router.handleVerifyProof)
+
+	// Cluster Endpoints
+	mux.HandleFunc("GET /api/v1/cluster/status", router.cluster.GetStatus)
+	mux.HandleFunc("POST /api/v1/cluster/scale", router.cluster.ManualScale)
+	mux.HandleFunc("POST /api/v1/cluster/policy", router.cluster.UpdatePolicy)
+	mux.HandleFunc("POST /api/v1/cluster/killswitch", router.cluster.ToggleKillSwitch)
+	
+	// Lineage & Trust Endpoints (Session 7.8)
+	mux.HandleFunc("GET /api/v1/lineage/event", router.handleGetEventLineage)
+	mux.HandleFunc("GET /api/v1/trust/graph", router.handleGetTrustGraph)
+
+	// Simulation Endpoints (Session 7.9)
+	mux.HandleFunc("POST /api/v1/simulation/start", router.simulation.StartSimulation)
+	mux.HandleFunc("GET /api/v1/simulation/result", router.simulation.GetResult)
+
+	// Governance Endpoints (Session 7.10)
+	mux.HandleFunc("GET /api/v1/governance/status", router.governance.GetStatus)
+	mux.HandleFunc("POST /api/v1/governance/emergency/lockdown", router.governance.Lockdown)
+	mux.HandleFunc("POST /api/v1/governance/emergency/release", router.governance.ReleaseLockdown)
+	mux.HandleFunc("POST /api/v1/governance/emergency/killswitch", router.governance.ToggleKillSwitch)
+	mux.HandleFunc("GET /api/v1/governance/drift", router.governance.GetDrift)
 
 	return mux
 }

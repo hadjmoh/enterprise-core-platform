@@ -31,12 +31,12 @@ type Orchestrator struct {
 	actions      map[string]Action
 	pending      map[string]*PendingAction
 	history      []*PendingAction
-	auditor      *audit.Logger
+	auditor      *audit.AuditLogger
 	logger       *logger.Logger
 	mu           sync.RWMutex
 }
 
-func NewOrchestrator(auditor *audit.Logger, logg *logger.Logger) *Orchestrator {
+func NewOrchestrator(auditor *audit.AuditLogger, logg *logger.Logger) *Orchestrator {
 	return &Orchestrator{
 		actions: make(map[string]Action),
 		pending: make(map[string]*PendingAction),

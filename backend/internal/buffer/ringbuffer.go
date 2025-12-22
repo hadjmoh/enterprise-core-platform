@@ -4,13 +4,27 @@ import (
 	"context"
 	"enterprise-core/backend/pkg/logger"
 	"sync"
+	"time"
 )
+
+// LineageStep represents a single hop or transformation in the data pipeline
+type LineageStep struct {
+	Stage     string    `json:"stage"`
+	NodeID    string    `json:"node_id"`
+	Timestamp time.Time `json:"timestamp"`
+	Action    string    `json:"action"`
+	DataHash  string    `json:"data_hash"`
+	Signature string    `json:"signature"`
+}
 
 // Event represents a normalized event ready for persistence
 type Event struct {
-	Timestamp string
-	Source    string
-	Data      map[string]interface{}
+	ID        string                 `json:"id"`
+	Timestamp string                 `json:"timestamp"`
+	Source    string                 `json:"source"`
+	SourceID  string                 `json:"source_id"`
+	Data      map[string]interface{} `json:"data"`
+	Lineage   []LineageStep         `json:"lineage,omitempty"`
 }
 
 // RingBuffer provides a thread-safe circular buffer for events

@@ -3,7 +3,6 @@ package cluster
 import (
 	"enterprise-core/backend/internal/ha"
 	"enterprise-core/backend/pkg/logger"
-	"fmt"
 	"sync"
 )
 

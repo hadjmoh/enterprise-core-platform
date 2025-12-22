@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"enterprise-core/backend/internal/auth"
 	"fmt"
 	"net/http"
 	"strings"

@@ -10,7 +10,11 @@ import (
 	"enterprise-core/backend/internal/correlation"
 	"enterprise-core/backend/internal/detection"
 	"enterprise-core/backend/internal/enrichment"
+	"enterprise-core/backend/internal/governance"
+	"enterprise-core/backend/internal/audit"
+	"enterprise-core/backend/internal/auth"
 	"enterprise-core/backend/internal/compliance"
+	"enterprise-core/backend/internal/cluster"
 	internalGrpc "enterprise-core/backend/internal/grpc"
 	"enterprise-core/backend/internal/ha"
 	"enterprise-core/backend/internal/industrial"
@@ -21,9 +25,11 @@ import (
 	"enterprise-core/backend/internal/pipeline"
 	"enterprise-core/backend/internal/query"
 	"enterprise-core/backend/internal/query/cost"
+	"enterprise-core/backend/internal/query/pilot"
 	"enterprise-core/backend/internal/security"
 	"enterprise-core/backend/internal/security/risk"
 	"enterprise-core/backend/internal/storage"
+	"enterprise-core/backend/internal/simulation"
 	"enterprise-core/backend/internal/tenant"
 	"enterprise-core/backend/internal/writer"
 	"enterprise-core/backend/pkg/logger"
@@ -79,6 +85,32 @@ func main() {
 	featureStore := analytics.NewFeatureStore("./data/features.json")
 	featureExtractor := analytics.NewFeatureExtractor(featureStore)
 	anomalyDetector := analytics.NewAnomalyDetector()
+	explainerEngine := analytics.NewExplainerEngine()
+	feedbackStore := analytics.NewFeedbackStore("./data/feedback.json")
+
+	// Initialize Trust Graph & Lineage (Session 7.8)
+	lineageTracker := security.NewLineageTracker("enterprise-secret-key-123", "ingest-master-01")
+	trustGraph := security.NewTrustGraph()
+
+	// Initialize Security Control Plane (Session 7.10)
+	governor := governance.NewGovernor(logg)
+	policyEngine := governance.NewPolicyEngine()
+	driftDetector := governance.NewDriftDetector(map[string]interface{}{
+		"max_ingest_buffer": 10000,
+		"retention_days":    90,
+		"encryption_enabled": true,
+	}, logg)
+
+	// Initialize Pilot Engine (Session 7.2)
+	pilotEngine := pilot.NewPilotEngine(costEngine)
+
+	// Initialize Cluster Intelligence (Session 7.7)
+	clusterMonitor := cluster.NewResourceMonitor()
+	autoScaler := cluster.NewAutoScaler(clusterMonitor, costEngine, logg)
+	go autoScaler.Run(context.Background())
+
+	// Audit Logger needed for Correlation and Dispatcher
+	auditor := audit.NewLogger("./data/audit.log", logg)
 
 	// Initialize SOAR Orchestrator
 	soarOrch := security.NewOrchestrator(auditor, logg)
@@ -88,9 +120,6 @@ func main() {
 	// Initialize Hunting Manager
 	huntingMgr := security.NewHuntingManager()
 
-	// Audit Logger needed for Correlation and Dispatcher
-	auditor := audit.NewLogger("./data/audit.log", logg)
-	
 	correlationEngine := correlation.NewEngine(5*time.Minute, logg, auditor, riskEngine)
 	detectionEngine := detection.NewEngine(logg)
 	
@@ -105,7 +134,7 @@ func main() {
 	}
 	
 	// Create Search Dispatcher (Phase 4)
-	dispatcher := query.NewDispatcher(storageEngine, auditor, policyRegistry, logg)
+	dispatcher := query.NewDispatcher(storageEngine, auditor, policyRegistry, governor, logg)
 
 	backpressure := buffer.NewBackpressureController(10000, 0.8, logg)
 
@@ -125,8 +154,14 @@ func main() {
 		featureExtractor,
 		vault,
 		merkleTree,
+		lineageTracker,
+		trustGraph,
+		governor,
 		logg,
 	)
+
+	// Initialize Simulation & Replay Engine (Session 7.9)
+	simEngine := simulation.NewEngine(storageEngine, ingestPipeline, logg)
 
 	// 4. Initialize Disk Writer
 	diskWriter, err := writer.NewDiskWriter("./data/events", 100, logg)
@@ -162,7 +197,7 @@ func main() {
 
 	// 4. Setup HTTP Router
 	authSvc := auth.NewMockProvider()
-	mux := api.NewRouter(ingestPipeline, dispatcher, authSvc, riskEngine, uebaEngine, soarOrch, policyRegistry, huntingMgr, mitreMgr, costEngine, pilotEngine, featureStore, anomalyDetector, explainerEngine, feedbackStore, merkleTree, logg)
+	mux := api.NewRouter(ingestPipeline, dispatcher, authSvc, riskEngine, uebaEngine, soarOrch, policyRegistry, huntingMgr, mitreMgr, costEngine, pilotEngine, featureStore, anomalyDetector, explainerEngine, feedbackStore, merkleTree, autoScaler, clusterMonitor, trustGraph, simEngine, governor, driftDetector, policyEngine, logg)
 	
 	// Add Prometheus metrics endpoint
 	mux.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)

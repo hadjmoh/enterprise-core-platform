@@ -2,6 +2,9 @@ package query
 
 import (
 	"context"
+	"encoding/hex"
+	"encoding/json"
+	"crypto/sha256"
 	"enterprise-core/backend/internal/buffer"
 	"enterprise-core/backend/internal/compliance"
 	"enterprise-core/backend/internal/storage"

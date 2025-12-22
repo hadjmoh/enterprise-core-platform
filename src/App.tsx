@@ -14,6 +14,10 @@ import { ThreatIntelPage } from './pages/ThreatIntelPage';
 import { SecurityRulesPage } from './pages/SecurityRulesPage';
 import { CloudAssetsPage } from './pages/CloudAssetsPage';
 import { CompliancePage } from './pages/CompliancePage';
+import { ClusterManagerPage } from './pages/ClusterManagerPage';
+import { TrustGraphPage } from './pages/TrustGraphPage';
+import { SimulationLabPage } from './pages/SimulationLabPage';
+import { ControlCenterPage } from './pages/ControlCenterPage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 
 function App() {
@@ -103,6 +107,38 @@ function App() {
                   element={
                     <DashboardLayout>
                       <CompliancePage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/cluster"
+                  element={
+                    <DashboardLayout>
+                      <ClusterManagerPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/trust-graph"
+                  element={
+                    <DashboardLayout>
+                      <TrustGraphPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/simulation-lab"
+                  element={
+                    <DashboardLayout>
+                      <SimulationLabPage />
+                    </DashboardLayout>
+                  }
+                />
+                <Route
+                  path="/control-center"
+                  element={
+                    <DashboardLayout>
+                      <ControlCenterPage />
                     </DashboardLayout>
                   }
                 />

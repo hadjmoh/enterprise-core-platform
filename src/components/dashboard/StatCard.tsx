@@ -1,3 +1,4 @@
+import React from 'react';
 import { Card } from '../ui/Card';
 import { cn } from '../../lib/utils';
 import { TrendingUp, TrendingDown, Minus, HelpCircle } from 'lucide-react';
@@ -44,24 +45,20 @@ export function StatCard({ title, value, trend, trendValue, icon, variant = 'def
                     </span>
                     <span className="text-slate-500 text-sm">vs last hour</span>
                 </div>
-                </div>
-    )
-}
+            )}
 
-{
-    onExplain && (
-        <button
-            onClick={(e) => {
-                e.stopPropagation();
-                onExplain();
-            }}
-            className="absolute bottom-2 right-2 p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-colors"
-            title="Explain this metric"
-        >
-            <HelpCircle className="w-4 h-4" />
-        </button>
-    )
-}
-        </Card >
+            {onExplain && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onExplain();
+                    }}
+                    className="absolute bottom-2 right-2 p-1.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-full transition-colors"
+                    title="Explain this metric"
+                >
+                    <HelpCircle className="w-4 h-4" />
+                </button>
+            )}
+        </Card>
     );
 }

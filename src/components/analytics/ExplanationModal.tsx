@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '../ui/Button';
-import { X, Sparkles, AlertTriangle, HelpCircle } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 
 interface Factor {
     name: string;

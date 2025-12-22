@@ -14,7 +14,7 @@ type Engine struct {
 	rules      []*Rule
 	windows    map[string]*TimeWindow
 	logger     *logger.Logger
-	auditor    *audit.Logger
+	auditor    *audit.AuditLogger
 	risk       *risk.RiskEngine
 	mu         sync.RWMutex
 	windowSize time.Duration
@@ -26,7 +26,7 @@ type TimeWindow struct {
 	EndTime   time.Time
 }
 
-func NewEngine(windowSize time.Duration, logger *logger.Logger, auditor *audit.Logger, risk *risk.RiskEngine) *Engine {
+func NewEngine(windowSize time.Duration, logger *logger.Logger, auditor *audit.AuditLogger, risk *risk.RiskEngine) *Engine {
 	return &Engine{
 		rules:      make([]*Rule, 0),
 		windows:    make(map[string]*TimeWindow),
