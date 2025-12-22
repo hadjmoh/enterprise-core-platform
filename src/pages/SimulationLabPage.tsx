@@ -111,9 +111,11 @@ export const SimulationLabPage: React.FC = () => {
                             <div className="space-y-2">
                                 {['Static Rules', 'Correlation Engine', 'UEBA Anomaly'].map(engine => (
                                     <label key={engine} className="flex items-center gap-2 cursor-pointer group">
-                                        <div className="w-4 h-4 rounded border border-slate-700 bg-slate-900 flex items-center justify-center group-hover:border-indigo-500">
-                                            <div className="w-2 h-2 rounded-sm bg-indigo-500" />
-                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            defaultChecked
+                                            className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+                                        />
                                         <span className="text-xs text-slate-300">{engine}</span>
                                     </label>
                                 ))}
