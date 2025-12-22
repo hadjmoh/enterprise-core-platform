@@ -44,8 +44,9 @@ export function LoginPage() {
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
+                            <label htmlFor="email" className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
                             <Input
+                                id="email"
                                 placeholder="admin@enterprise.core"
                                 icon={<Mail className="h-4 w-4" />}
                                 value={email}
@@ -55,10 +56,17 @@ export function LoginPage() {
                         </div>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center ml-1">
-                                <label className="text-sm font-medium text-slate-300">Password</label>
-                                <a href="#" className="text-xs text-brand-400 hover:text-brand-300 transition-colors">Forgot password?</a>
+                                <label htmlFor="password" className="text-sm font-medium text-slate-300">Password</label>
+                                <button
+                                    type="button"
+                                    onClick={() => alert('Password reset flow not implemented in mock.')}
+                                    className="text-xs text-brand-400 hover:text-brand-300 transition-colors focus:outline-none focus:underline"
+                                >
+                                    Forgot password?
+                                </button>
                             </div>
                             <Input
+                                id="password"
                                 type="password"
                                 placeholder="••••••••"
                                 icon={<Lock className="h-4 w-4" />}

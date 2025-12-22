@@ -182,12 +182,12 @@ export const UniversalVisualizer: React.FC<UniversalVisualizerProps> = ({ progre
 
                                                 // Automatic Semantic Intelligence
                                                 if (key === 'status') {
-                                                    const code = parseInt(sVal);
+                                                    const code = Number.parseInt(sVal, 10);
                                                     if (code >= 500) pillStyle = "bg-red-500/10 text-red-500 border border-red-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
                                                     else if (code >= 400) pillStyle = "bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
                                                     else if (code >= 200) pillStyle = "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded text-[10px] font-bold";
                                                 } else if (key === 'latency' || key === 'duration') {
-                                                    const lat = parseFloat(sVal);
+                                                    const lat = Number.parseFloat(sVal);
                                                     if (lat > 1000) pillStyle = "text-red-400 font-bold underline decoration-red-500/50 underline-offset-4";
                                                     else if (lat > 500) pillStyle = "text-amber-400 font-bold";
                                                 } else if (key.toLowerCase().includes('level')) {

@@ -167,7 +167,9 @@ export function ReportingPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
                             <input
                                 type="text"
+                                id="reporting-search"
                                 placeholder={`Search ${activeTab === 'history' ? 'reports' : 'schedules'}...`}
+                                aria-label={`Search ${activeTab === 'history' ? 'report history' : 'automation schedules'}`}
                                 className="w-full bg-slate-900/50 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50 transition-all font-mono"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -429,9 +431,10 @@ export function ReportingPage() {
 
                             <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Schedule Name</label>
+                                    <label htmlFor="schedule-name" className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Schedule Name</label>
                                     <input
                                         type="text"
+                                        id="schedule-name"
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-amber-500/50"
                                         placeholder="e.g. Daily Security Audit"
                                         value={newSchedule.name || ''}
@@ -439,8 +442,9 @@ export function ReportingPage() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Query (SPL)</label>
+                                    <label htmlFor="schedule-query" className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Query (SPL)</label>
                                     <textarea
+                                        id="schedule-query"
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2 text-sm font-mono h-24 focus:outline-none focus:ring-1 focus:ring-amber-500/50"
                                         placeholder="index=main | stats count by host"
                                         value={newSchedule.query || ''}

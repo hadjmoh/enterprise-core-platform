@@ -11,7 +11,7 @@ interface SingleValuePanelProps {
 }
 
 export const SingleValuePanel: React.FC<SingleValuePanelProps> = ({ value, label, trend, unit, thresholds }) => {
-    const numericValue = typeof value === 'number' ? value : parseFloat(String(value));
+    const numericValue = typeof value === 'number' ? value : Number.parseFloat(String(value));
 
     // Find active threshold
     const activeThreshold = thresholds

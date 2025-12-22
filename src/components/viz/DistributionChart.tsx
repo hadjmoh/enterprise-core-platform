@@ -80,7 +80,11 @@ const DistributionChartImpl: React.FC<DistributionChartProps> = ({ data, type, t
                         const labelValue = String(d[labelKey]);
                         let hash = 0;
                         for (let j = 0; j < labelValue.length; j++) {
-                            hash = labelValue.charCodeAt(j) + ((hash << 5) - hash);
+                            const code = labelValue.codePointAt(j);
+                            if (code !== undefined) {
+                                hash = code + ((hash << 5) - hash);
+                                if (code > 0xffff) j++; // Skip surrogate pair
+                            }
                         }
                         const colorIdx = Math.abs(hash) % palette.length;
                         return palette[colorIdx];

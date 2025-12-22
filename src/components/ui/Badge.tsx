@@ -23,7 +23,7 @@ export const Badge = ({ className, variant = 'default', ...props }: BadgeProps) 
                 className
             )}
             role={props.onClick ? "button" : props.role}
-            tabIndex={props.onClick ? 0 : props.tabIndex}
+            tabIndex={props.onClick ? (props.tabIndex ?? 0) : props.tabIndex}
             onKeyDown={(e) => {
                 if (props.onClick && (e.key === 'Enter' || e.key === ' ')) {
                     e.preventDefault();
