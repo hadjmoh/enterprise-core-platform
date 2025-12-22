@@ -79,11 +79,10 @@ const DistributionChartImpl: React.FC<DistributionChartProps> = ({ data, type, t
                     if (type === 'pie') {
                         const labelValue = String(d[labelKey]);
                         let hash = 0;
-                        for (let j = 0; j < labelValue.length; j++) {
-                            const code = labelValue.codePointAt(j);
+                        for (let i = 0; i < labelValue.length; i++) {
+                            const code = labelValue.codePointAt(i);
                             if (code !== undefined) {
                                 hash = code + ((hash << 5) - hash);
-                                if (code > 0xffff) j++; // Skip surrogate pair
                             }
                         }
                         const colorIdx = Math.abs(hash) % palette.length;

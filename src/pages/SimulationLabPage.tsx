@@ -88,9 +88,10 @@ export const SimulationLabPage: React.FC = () => {
 
                     <div className="space-y-4">
                         <div>
-                            <label className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">Time Range</label>
+                            <label htmlFor="sim-time-range" className="text-[10px] text-slate-500 uppercase font-bold mb-1 block">Time Range</label>
                             <div className="space-y-2">
                                 <input
+                                    id="sim-time-range"
                                     type="datetime-local"
                                     className="w-full bg-slate-900 border-slate-700 rounded p-2 text-xs outline-none focus:ring-1 focus:ring-indigo-500"
                                     value={dateRange.from}
@@ -106,7 +107,7 @@ export const SimulationLabPage: React.FC = () => {
                         </div>
 
                         <div>
-                            <label className="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Detection Engines</label>
+                            <span className="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Detection Engines</span>
                             <div className="space-y-2">
                                 {['Static Rules', 'Correlation Engine', 'UEBA Anomaly'].map(engine => (
                                     <label key={engine} className="flex items-center gap-2 cursor-pointer group">
@@ -120,8 +121,8 @@ export const SimulationLabPage: React.FC = () => {
                         </div>
 
                         <div className="pt-4 border-t border-slate-800">
-                            <label className="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Dataset Mode</label>
-                            <select className="w-full bg-slate-900 border-slate-700 rounded p-2 text-xs outline-none cursor-pointer">
+                            <label htmlFor="sim-dataset-mode" className="text-[10px] text-slate-500 uppercase font-bold mb-2 block">Dataset Mode</label>
+                            <select id="sim-dataset-mode" className="w-full bg-slate-900 border-slate-700 rounded p-2 text-xs outline-none cursor-pointer">
                                 <option>Live Production Cache</option>
                                 <option>Cold Storage (S3)</option>
                                 <option>Synthetic Attack Scenarios</option>

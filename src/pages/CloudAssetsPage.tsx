@@ -138,8 +138,9 @@ export function CloudAssetsPage() {
                         <Card className="p-4 bg-slate-900/50 border-slate-800">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div>
-                                    <label className="text-xs font-medium text-slate-400 mb-2 block">Provider</label>
+                                    <label htmlFor="filter-provider" className="text-xs font-medium text-slate-400 mb-2 block">Provider</label>
                                     <select
+                                        id="filter-provider"
                                         value={filters.provider || 'all'}
                                         onChange={(e) => setFilters({ ...filters, provider: e.target.value as any })}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50"
@@ -152,8 +153,9 @@ export function CloudAssetsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-slate-400 mb-2 block">Type</label>
+                                    <label htmlFor="filter-type" className="text-xs font-medium text-slate-400 mb-2 block">Type</label>
                                     <select
+                                        id="filter-type"
                                         value={filters.type || ''}
                                         onChange={(e) => setFilters({ ...filters, type: e.target.value })}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500/50"
@@ -166,8 +168,9 @@ export function CloudAssetsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-slate-400 mb-2 block">Min Risk</label>
+                                    <label htmlFor="filter-min-risk" className="text-xs font-medium text-slate-400 mb-2 block">Min Risk</label>
                                     <input
+                                        id="filter-min-risk"
                                         type="number"
                                         min="0"
                                         max="100"
@@ -179,8 +182,9 @@ export function CloudAssetsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="text-xs font-medium text-slate-400 mb-2 block">Max Risk</label>
+                                    <label htmlFor="filter-max-risk" className="text-xs font-medium text-slate-400 mb-2 block">Max Risk</label>
                                     <input
+                                        id="filter-max-risk"
                                         type="number"
                                         min="0"
                                         max="100"
