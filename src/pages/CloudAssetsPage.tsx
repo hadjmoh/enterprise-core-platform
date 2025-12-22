@@ -4,8 +4,9 @@ import { Header } from '../components/layout/Header';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { Cloud, Server, Shield, AlertTriangle, Filter } from 'lucide-react';
+import { Cloud, Server, Shield, AlertTriangle, Filter, Network } from 'lucide-react';
 import { cloudService, type CloudAsset, type AssetFilter } from '../services/cloudService';
+import { AssetGraph } from '../components/cloud/AssetGraph';
 
 const providerIcons: Record<string, string> = {
     aws: '🟠',
@@ -23,7 +24,7 @@ export function CloudAssetsPage() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [assets, setAssets] = useState<CloudAsset[]>([]);
     const [selectedAsset, setSelectedAsset] = useState<CloudAsset | null>(null);
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid' | 'list' | 'graph'>('grid');
     const [loading, setLoading] = useState(true);
     const [showFilters, setShowFilters] = useState(false);
 
@@ -117,6 +118,16 @@ export function CloudAssetsPage() {
                                         }`}
                                 >
                                     List
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('graph')}
+                                    className={`px-3 py-1.5 rounded text-xs font-medium transition-all flex items-center gap-1 ${viewMode === 'graph'
+                                        ? 'bg-brand-500 text-white'
+                                        : 'text-slate-400 hover:text-white'
+                                        }`}
+                                >
+                                    <Network className="h-3 w-3" />
+                                    Graph
                                 </button>
                             </div>
                         </div>
@@ -250,6 +261,14 @@ export function CloudAssetsPage() {
                                 </p>
                             </div>
                         </Card>
+                    ) : viewMode === 'graph' ? (
+                        <div className="h-[800px]">
+                            <AssetGraph
+                                assets={assets}
+                                onNodeClick={setSelectedAsset}
+                                selectedAssetId={selectedAsset?.id}
+                            />
+                        </div>
                     ) : (
                         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-3'}>
                             {assets.map((asset) => (
