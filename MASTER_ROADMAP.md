@@ -317,30 +317,38 @@ This document provides a comprehensive session-by-session breakdown of the devel
 ## Phase 8: Cluster Management & Scalability
 **Goal**: Transform the platform into a distributed, multi-site enterprise cluster with high availability.
 
-*   **Session 1: Distributed Search Architecture: Map-Reduce Implementation**
-    *   Build the "Search Head" vs. "Indexer" communication protocol
-    *   Implement parallel task dispatch and result merging
-*   **Session 2: Cluster Master: Indexer Discovery & Metadata Coordination**
-    *   Implement a centralized coordinator for cluster membership
-    *   Add shard-metadata synchronization and health check heartbeats
-*   **Session 3: Search Head Clustering: High Availability for UI**
-    *   Implement state replication for dashboards, alerts, and user settings
-    *   Add a "Captain" election for Search Head clusters
-*   **Session 4: Smart Load Balancer: Distributing data and search requests**
-    *   Build a protocol-aware load balancer for HEC and Search traffic
-    *   Implement "Data Locality" awareness for search optimization
-*   **Session 5: Deployment Server: Centralized Configuration Management**
-    *   Build a config distribution engine for apps and inputs
-    *   Add "Server Class" grouping for targeted configuration deployment
-*   **Session 6: Configuration Bundle Replication & Rollback**
-    *   Implement atomic configuration updates across the cluster
-    *   Add "Instant Rollback" capabilities for failed deployments
-*   **Session 7: Multi-site Clustering: Multi-region Disaster Recovery**
-    *   Implement cross-site data replication and affinity search
-    *   Add automated failover for multi-region active/active setups
-*   **Session 8: Global Health Monitor: Node-level Telemetry**
-    *   Build a "Control Plane" dashboard for cluster-wide hardware health
-    *   Add license usage tracking and resource quota enforcement
+*   **Session 8.1: Distributed Search Architecture & Peer Discovery**
+    *   Backend: Peer communication protocol (gRPC) & neighbor discovery
+    - Backend: Cluster health heartbeats and node state tracking
+    - API: Cluster-wide search orchestration endpoints
+*   **Session 8.2: Map-Reduce Execution Engine**
+    - Backend: Task decomposition (Map) and result merging (Reduce)
+    - Backend: Distributed sorting, aggregation, and Top-N merging
+    - Implementation: Parallel task dispatch over gRPC
+*   **Session 8.3: Cluster Master & Shard Coordination**
+    - Backend: Metadata store for shard location & health
+    - Backend: Consistent hashing for shard placement & balancing
+    - API: Cluster topology and shard status views
+*   **Session 8.4: Search Head Clustering (SHC) & State Sync**
+    - Backend: Configuration replication (Raft-based consensus)
+    - Backend: Leader election for SHC operations
+    - Frontend: Unified cluster status & topology dashboard
+*   **Session 8.5: Load Balancing & Data Locality**
+    - Backend: Locality-aware search routing (Shortest path to data)
+    - Backend: Protocol-aware load balancer for HEC/Search traffic
+    - Network: Traffic distribution and retry logic
+*   **Session 8.6: Deployment Server & Config Governance**
+    - Backend: Application bundle distribution & versioning
+    - Backend: Client grouping and server class management
+    - API: Centralized configuration deployment API
+*   **Session 8.7: Cluster-wide Rollback & Atomic Updates**
+    - Backend: Delta replication of configuration bundles
+    - Backend: Transactional deployment (Stop-Update-Start lifecycle)
+    - Frontend: Deployment history and "Safe Rollback" UI
+*   **Session 8.8: Multi-site Clustering & Disaster Recovery**
+    - Backend: Cross-site data replication and bucket-level affinity
+    - Backend: Site-aware search routing and failover automation
+    - Infrastructure: Global health dashboard for multi-region status
 
 ---
 
